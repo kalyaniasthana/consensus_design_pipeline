@@ -4,6 +4,8 @@ import Bio
 from Bio import SeqIO,AlignIO
 from ugly_strings import *
 from collections import Counter, OrderedDict
+import matplotlib.pyplot as plt
+import numpy as np
 class Check_files():
     '''Check all input files/dependencies/etc. are in the accessible/in the working directory.
        ugly_strings here?
@@ -36,7 +38,7 @@ class Check_files():
         ip = ip.replace('./','')
         return ip
     def list_to_file(self,list1,outfile):
-        print (">>list_to_file",outfile)
+        print (">>list_to_file: Write fasta without dashes.\n",outfile)
         with open(outfile, 'w+') as f:
             for item in list1:
                 f.write("%s\n" % item)
@@ -70,7 +72,7 @@ class Alignment():
         return idlist,seqlist,numseq
 
     def remove_dashes_list(self,wd):
-        print (">>remove_dashes_list:")
+        print (">>Alignment:remove_dashes_list:\n")
         #wd: list of strings with dashes
         #wod: list of strings without dashes.
         wod=[]
@@ -78,52 +80,39 @@ class Alignment():
         for i in wd:
             j=''.join(i).replace("-","") 
             wod+=[j];seq_length+=[len(j)]
-            #assert (j.isalpha()),'Error: Non-alphabet found in family'
-        print ("Remove dashes from strings")
-        num_seq=len(seq_length)
-        print (num_seq)        
+            assert (j.isalpha()),'Error: Non-alphabet found in family'
+        num_seq=len(seq_length)        
         return wod,num_seq
 
-    def fasta_to_clustalo(self,in_file,out_file):
-        cmd = 'clustalo -i ' + in_file + ' -o ' + out_file + ' --force -v'
-        process=Popen(cmd,stdout=PIPE,stderr=PIPE)
-        stdout, stderr = process.communicate()
-        return stdout,stderr
-    def fasta_to_mafft(self,in_file, out_file):
-        cmd = 'mafft ' + in_file + ' > ' + out_file
-        process=Popen(['mafft',in_file],stdout=PIPE,stderr=PIPE)
-        stdout, stderr = process.communicate()
-        return stdout,stderr
-    def fasta_to_muscle(self,in_file,out_file):
-        cmd = 'muscle -in ' + in_file + ' -out ' + out_file
-        process=Popen(['muscle','-in',in_file,out_file],stdout=PIPE,stderr=PIPE,shell=True)
-        process.wait(2)
-        stdout, stderr = process.communicate()
-        print (stderr)
-        return stdout,stderr
-    def fasta_to_list(self,out_file):
-        sequences = []
-        name_list = []
-        #SeqIO.parse in a function from the biopython module
-        for record in Bio.SeqIO.parse(out_file, 'fasta'):
-                name_list.append(record.id)
-                sequences.append(str(record.seq).upper())
-        return sequences, name_list
-
-    def remove_dashes_file(self,fasta_file_from, fasta_file_to):
-        with open(fasta_file_from) as fin, open(fasta_file_to, 'w') as fout:
-                for line in fin:
-                        if line.startswith('>'):
-                                fout.write(line)
-                        else:
-                                fout.write(line.translate(str.maketrans('', '', '-')))
+    def write_fasta(self,idlist,seqlist,fastafile):
+        print (">>Alignment:write_fasta\n",fastafile)
+        f = open(fastafile,"w+")
+        #Write fasta file from ids and protein sequence list.
+        assert(len(idlist)==len(seqlist)),'Idlist and sequence list do not match'
+        
+        for i in range(0,len(idlist)):
+            id='>'+idlist[i];seq=''.join(seqlist[i])
+            f.write('%s\n' % (id))
+            f.write('%s\n' % (seq))
+            
+        f.close()
         return
+
+    def fasta_to_mafft(self,in_file, out_file):
+        print (">>Alignment:fasta_to_mafft\n",in_file,out_file)
+        cmd = 'mafft ' + in_file + ' > ' + out_file
+        f=open(out_file,"w+")
+        process=Popen(['mafft',in_file],stdout=f,stderr=PIPE)
+        stdout, stderr = process.communicate()
+        print (stdout)
+
+        return stdout,stderr
 
     def cdhit(self,in_file, out_file):
         #cmd = 'cd-hit -i ' + in_file + ' -o ' + out_file + ' -T 1 -c 0.90'
-        cmd = 'cd-hit, -i ' + in_file
-        process=Popen(cmd,stdout=PIPE,stderr=PIPE)
+        process=Popen(['cd-hit','-i',in_file,'-o',out_file,'-T','1','-c','0.90'],stdout=PIPE,stderr=PIPE)
         stdout, stderr = process.communicate()
+        #print (stdout)
         return stdout,stderr
 
     def stockholm_to_fasta(self,ifile, ofile):
@@ -152,15 +141,19 @@ class Alignment():
                         fout.write('>' + line[0:30].upper() + '\n')
                         fout.write(line[30: ].upper())
     
-    def sequence_length_list(self,read_file):
-        # returning a list of sequence lengths
-        sequences, name_list = self.fasta_to_list(read_file)
-        sequence_lengths = []
-        #print(len(sequences))
-        for seq in sequences:
-                sequence_lengths.append(len(seq))
-        return sequence_lengths
-    #mode of a list
+    def sequence_length_dist(self,seqlist):
+        print (">>Aligment:sequence_length_dist:")
+        #Get sequence length distribution from sequencelist
+        seq_length_list=[]
+        for i in seqlist:
+            seq_length_list+=[len(i)]
+    #    print (seq_length_list)
+        return seq_length_list
+    def plot_length_dist(self,seq_length_list,name):
+        x=np.arange(1,len(seq_length_list)+1,1)
+        plt.scatter(x,seq_length_list)        
+        plt.savefig(name+'.pdf')        
+
     def mode_of_list(self,sequence_lengths):
         n = len(sequence_lengths)
         data = Counter(sequence_lengths) 
@@ -172,6 +165,7 @@ class Alignment():
                 return mode
 
     def alignment(self,option, in_file, out_file):
+        #Use Case if there could be even more options.
         if option == '1':
                 self.fasta_to_clustalo(in_file, out_file)
         elif option == '2':
@@ -308,24 +302,33 @@ class DCA(object):
 
 
 def main():
+    #All this goes into protocol.py
     ch=Check_files()
     a=Alignment()
     con=Consensus()
     #a.fasta_to_mafft('./write.fasta','./test_out')
-    #Read list of sequences from file.
+    #Read list ofs sequences from file.
     home='/Users/sridharn/software/consensus_test_repo/'
-    fam_file='/Users/sridharn/software/consensus_test_repo/families/PF04398.fasta'
+    fam_file=home+'/families/PF04398.fasta'
     idlist,seqlist,num_seq=a.family_to_string(fam_file)
-    print (idlist)
     assert (len(idlist)==len(seqlist))
     assert (num_seq>=500),'Error: Less than 500 sequences in family'
-
     #Remove dashes
     wod,num_seq=a.remove_dashes_list(seqlist)
-    
     #cdhit cluster
-    ch.list_to_file(wod,home+'temp_files/test_write.fasta')            
-
-#ß    a.cdhit(write_file,out_file)
-
+    a.write_fasta(idlist,wod,home+'temp_files/test_write.fasta')
+    cdhit_out=home+'temp_files/test_cdhit.fasta'
+    cdhit_in=home+'/temp_files/test_write.fasta'
+    a.cdhit(cdhit_in,cdhit_out)
+    cd_idlist,cd_seqlist,cd_num_seq=a.family_to_string(cdhit_out)
+    print ("After clustering with CD-HIT, alignments reduced to",cd_num_seq,"from",num_seq)
+    assert (cd_num_seq>=500),'Error: Less that 500 sequences after clustering with CD-HIT'
+    #Plot length distribution
+    seq_length_list=a.sequence_length_dist(cd_seqlist)
+    a.plot_length_dist(seq_length_list,home+'length_distributions/'+'PF04398_test')    
+    #Get_mode.
+    mode= a.mode_of_list(seq_length_list)
+    #Zeroeth alignment:
+    stdout,stderr=a.fasta_to_mafft(cdhit_out,home+'temp_files/mafft_test.fasta')
+    print (stdout)
 main()
