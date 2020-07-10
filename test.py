@@ -7,6 +7,7 @@ from ugly_strings import *
 from collections import Counter, OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
+
 class Check_files():
     '''Check all input files/dependencies/etc. are in the accessible/in the working directory.
        ugly_strings here?
@@ -289,19 +290,16 @@ class Consensus(object):
         max_value = max(profile_matrix['-']) #max probability of finding a dash
         if max_value == 1: #just in case there are dashes in every sequence at that position
                 max_value = second_largest(profile_matrix['-'])
-
         positions = [] 
         for i in range(len(profile_matrix['-'])):
                 if profile_matrix['-'][i] == max_value: #all positions at which probability of finding a dash is maximum
                         positions.append(i)
-
         bad_sequence_numbers = []
         for i in range(len(sequences)):
                 for position in positions:
                         if sequences[i][position] != '-': #if sequence does not have a dash at the position where probability of finding a dash is the maximum
                                 if i not in bad_sequence_numbers: #if sequence is not already in the list
                                         bad_sequence_numbers.append(i)
-
         return bad_sequence_numbers
     def remove_bad_sequences(self,sequences, name_list, bad_sequence_numbers):
         print (">>Consensus:bad_sequence_numbers")
@@ -334,21 +332,20 @@ class Consensus(object):
         p.communicate()
         p.wait()
         return
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file):
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
-        #seq_length_list is length of each fasta sequence.
-        iteration =1 
+        #seq_length_list is length of each fasta sequence. 
         loa = 0
         count=0
         #break_tags.txt needs to be deleted manually each time?
         f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
         print ("----------------WHILE LOOP---------------")
         while True:
-            a=Alignment()
-            print("Iteration Number: " + str(iteration) + '*'*30)
             count=count+1
+            a=Alignment()
+            print('*'*30,"Iteration Number: " + str(count) + '*'*30)
             print ("Count=",count)
             name_list,sequences,number_of_sequences=a.family_to_string(write_file)
             seq_length_list=a.sequence_length_dist(sequences)
@@ -363,14 +360,16 @@ class Consensus(object):
             breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
             if True in breaks:
               #copy file to refined file
-              self.copy_file(write_file,refined_alignment)
+              self.copy_file(write_file,refined_file)
               #save consensus
+              a.write_fasta(['>>consensus-from-refined-alignment'],[cs],final_consensus_file)
               #get hmm from refined file
               #Use profile to emit N sequences.
               #align hmm sequences with refined file to generate hmm sequences.
               break
             pm = self.profile_matrix(sequences)
             cs = self.consensus_sequence_nd(pm,sequences) 
+            print (cs)
             print ("CONSENSUS SEQUENCE LENGTH=",len(cs),"\n")
             #Reproduces from consensus.py correctly this far.
             bad_sequence_numbers = self.find_bad_sequences(pm, sequences, name_list)
@@ -384,15 +383,17 @@ class Consensus(object):
             #Align
             a.fasta_to_mafft(out_file,write_file)
             loa=length_of_alignment
-            iteration=iteration+1
-            #Now file I/O!!!!!seq->temp_file->out_file->write_file!!
-            #Do this in the list itself instead of I/O,
-            print (temp_file)
-            print (out_file)
-            print (write_file)        
-            print(cs, len(cs), 'Consensus from refined alignment')
+            #old file I/O:sequences->temp_file->out_file->write_file.
+            #new file I/O:seq_list->seq_list->out_file->write_file.
+class HMM(object):
+    def __init__(self):
+        return
+    def call_hmmbuild(self,infile,outfile):
+        cmd='hmmbuild '+profile_hmm+refined_alignment
+        Popen()
+        return
 
-
+    
 def main():
     #All this goes into protocol.py
     ch=Check_files()
@@ -403,6 +404,7 @@ def main():
     home='/Users/sridharn/software/consensus_test_repo/'
     fam_file=home+'families/PF04398.fasta'
     mafft_out=home+'temp_files/test_mafft.fasta'
+    #Following ugly_strings. Ugly_strings are very ugly.
     out_file=home+'temp_files/test_output.fasta'
     write_file=home+'temp_files/test_write.fasta'
     temp_file=home+'temp_files/test_temp.fasta'
@@ -429,7 +431,6 @@ def main():
     mafft_seq_length_list=a.sequence_length_dist(write_file)
     #Now iterate.
     refined_file= home+'temp_files/test_PF04398_refined.fasta'
-    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file)
-
-
+    final_consensus_file=home+'temp_files/test_PF04398_final_consensus.fasta'
+    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file)
 main()
