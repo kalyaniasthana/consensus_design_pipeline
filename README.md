@@ -51,3 +51,20 @@
 - There are some useless/unused functions in consensus.py and pydca_consensus.py. I think it's time to get rid of those as well. 
 
 ###### Let me know if you want me to include explanations for each function as well.
+- I need a paper for the method followed for consensus design. 
+- Are temp_files being overwritten before they are read? Multiple threads necessary? Popen helps here. 
+- Your CD-hit input files (write.fasta) have sequences distributed across multiple lines. Does this affect SeqIO? 
+Example:
+'''
+>G3VNJ6_SARHA/71-197
+
+IITKLFCRQGFYLQANPDGSI
+NGTQEDTSSFT
+QFNLIPVGLRVVTIQSTKLGHYVA
+MNAEGLLYSSPHFTA
+ECRFKECVFENYYVLYASALYRQ
+SRSGRAWYLGLDKEGHVMKGNRVKKT
+KAAAHFV
+'''
+
+
