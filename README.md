@@ -3,6 +3,47 @@
 
 ###### The files in these 5 folders with suffixes `_1` to `_3` are from strategy 2 executions and the ones with suffixes `_4` to `_6` are from strategy 1 executions.
 
+### explanation for the profile matrix function
+- (a profile matrix tells the probability of finding an amino acid at each position of the alignment)
+- function profile_matrix(sequences_from_alignment):
+	- pm = {}: keys are amino acids, including a dash. value for a key is a list. the length of this list is the length of the alignment
+	(length of alignment = length of any sequence in sequencse_from_alignment)
+	- intially pm[amino_acid] = [0 for 0 in range(length of alignment)]
+	- for iter from 0 to length of sequences_from_alignment
+		- current_sequence = sequences_from_alignment[iter]
+		- for position from 0 to length of alignment
+			- current_amino_acid = current_sequence[position]
+			- pm[current_amino_acid][position] += 1 (increasing the frequeny of current amino acid at position
+	- for amino_acid in pm:
+		- values_of_amino_acid_key = pm[amino_acid]
+		- for value in values_of_amino_acid_key:
+			- value = value/number_of_sequences (number_of_sequences = length of sequences_from_alignment)
+			
+	- return pm
+	
+### explanation for the consensus sequence calculation function
+- (finds an average sequence from all sequences in an alignment. it's an average because from each position, it takes the amino acid with the highest probability at that position)
+- consensus_sequence = ''
+- function consensus_sequence(pm, sequences_from_alignment):
+	- for position from 0 to length of alignment:
+		- current_list_of_probabilities = list()
+		- for amino_acid in profile_matrix:
+			- current_list_of_probabilities += [pm[amino_acid][position]]
+		- max_value_for_this_position = max(current_list_of_probabilities)
+		- max_indices = get a all indices in from current_list_of_probabilities which have max_value_for_this_position
+		- max_index = max_indices[0]
+		- if amino_acid[max_index] == '-' (if the highest probability amino acid at position is a dash '-')
+			 - max_value = current_list_of_probabilities[max_index]
+			 - if max_value < 0.5 (and if this highest probability is less than 0.5)
+			 	- then find the second_largest_value in current_list_of_probabilities (this second largest probability should correspond to an amino acid, not a dash)
+			 	- if second_largest_value == max_value:
+			 		- max_index = max_indices[1]
+			 	- else
+			 		- max_index = index of second largest value in current_list_of_probabilities
+			 - else (= if max_value > 0.5 i.e if '-' has a probability greater than 0.5)
+			 	- continue
+		- consensus_sequence += amino_acids[max_index] (where amino_acids = ['-', 'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y'])
+		- Note: make sure than the keys(amino_acids) in pm are in the same order as they are in amino_acids list.
 
 ### This is what a single run through the pipeline looks like, for one family:
 
@@ -55,5 +96,4 @@
 - Are temp_files being overwritten before they are read? Multiple threads necessary? Popen helps here. 
 - CD-hit input files (write.fasta) have sequences distributed across multiple lines. Does this affect SeqIO? 
 - Where is consensus being calculated inside the while loop (line 394)? It's copying the mafft file (last stored from alignment(option,out_file, write_file)to refined_alignment. That is the consensus sequence? the consensus fuction is not called here.  Copy inside the if loop? Aren't we copying the same thing multiple times here. (Never mind. Didn't see the part below the break. 
-
 
