@@ -99,4 +99,6 @@
 
 -cwd = 'find | grep ' + filename + '_hmmsequences.fasta'#find emitted sequences file. 
 I'm lost at the ip bit. Removing unwanted characters from a file that was just written? 
-Refine_filename refines(edits) the filenames OR is a refined (Aligned) file. 
+Refine_filename refines(edits) the filenames OR is a refined (Aligned) file.
+
+- We should get rid of all the os.chdir() going on and some paths are still hard-coded. I'm going to find a way around this.
