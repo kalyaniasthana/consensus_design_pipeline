@@ -29,7 +29,7 @@ class Check_files():
         return cwd+a,cwd+b,cwd+c,cwd+d,cwd+e,cwd+f,cwd+g,cwd+h,cwd+i,cwd+j
     def fam_exist(self,accession):
         x=self.cwd+'families/'+accession+'.fasta'
-        print (x)
+        #print (x)
         return os.path.exists(x)
     #removing unwanted characters from a filename
     def refine_filename(self,ip):
@@ -163,33 +163,6 @@ class Alignment():
         else:
                 return mode
 
-    def alignment(self,option, in_file, out_file):
-        print (">>Alignment: alignment\n",in_file,out_file)
-        #Use Case if there could be even more options.
-        if option == '1':
-                self.fasta_to_clustalo(in_file, out_file)
-        elif option == '2':
-                self.fasta_to_mafft(in_file, out_file)
-        elif option == '3':
-                self.fasta_to_muscle(in_file, out_file)
-        else:
-                print('Invalid Option')
-                exit()
-
-    #realigning sequences to an existing alignment using mafft
-    def realign(self,option, original_alignment, hmm_sequences, out_file):
-        if option == '2':
-                cwd = 'mafft --add ' + hmm_sequences + ' --reorder --keeplength ' + original_alignment + ' > ' + out_file
-                #mafft --add new_sequences --reorder existing_alignment > output
-                os.system(cwd)
-                #op = subprocess.check_output(cwd, shell=True)
-                #with open(out_file, 'w') as fin:
-                #       for line in op:
-                #               fin.write(line)
-        else:
-                print('Invalid input')
-                exit()
-
 
 
 class Consensus(object):
@@ -204,7 +177,8 @@ class Consensus(object):
         self.amino_acids=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y','-']
         #self.sequences=sequences
         return
-    def check_break_conditions(self,num_seq,loa1,loa0,mode):
+    def check_break_conditions(self,num_seq,loa1,loa0,mode,count):
+        print ('>>Consensus:check_break_conditions')
         #Add any number of conditions here
         #condition 1
         c1=(num_seq<500)
@@ -212,52 +186,142 @@ class Consensus(object):
         x = 0.1*mode[0]
         y = mode[0] - x
         c2=(loa1<y)
-        #Condition 3
+        #Condition3
         c3=(loa1==loa0) 
-        print (c1,c2,c3)
-        exit()
-        return c1,c2,c3
+        c4=(count>10)#adding for testing
+        bools=[c1,c2,c3,c4]
+        print (bools)
+        return bools
 
-        return
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file):
+    def profile_matrix(self,sequences):
+        print (">>Consensus:profile_matrix")
+        #print (sequences)
+        sequence_length = len(sequences[0]) #length of first sequences (length of all sequences is the same after alignment)
+        profile_matrix = {} #profile matrix in dictionary format
+        for acid in self.amino_acids:
+                profile_matrix[acid] = [float(0) for i in range(sequence_length)] #initialise all entries in profile matrix to zero
+
+        for i in range(len(sequences)):
+                seq = sequences[i].upper() #convert sequence to upper case, just in case it isn't
+                for j in range(len(seq)): #for each letter in the sequence
+                    profile_matrix[seq[j]][j] += float(1) #increase frequency of the letter (seq[j]) at position j
+
+        for aa in profile_matrix: #for amino acid in profile matrix
+                l = profile_matrix[aa] #l i sthe list of frequencies associated with that amino acid
+                for i in range(len(l)): #for position i in l
+                        l[i] /= float(len(sequences)) #divide frequency at i by the length of the list l
+
+        pm = OrderedDict([(x, profile_matrix[x]) for x in self.amino_acids])
+        return pm
+
+    def get_all_indices(self,l, value):
+        return [i for i, val in enumerate(l) if val == value]
+
+    def consensus_sequence_nd(self,sequences, pm):
+        consensus_seq = ''
+        sequence_length = len(sequences[0])
+        for i in range(sequence_length):
+            l = []
+            for aa in pm:
+               l.append(pm[aa][i])
+            max_value = max(l)
+            indices = self.get_all_indices(l, max_value)
+            index = indices[0]
+            if self.amino_acids[index] == '-':
+                if l[index] < 0.5:
+                    second_largest_value = self.second_largest(l)
+                    if second_largest_value == max_value:
+                        index = indices[1]
+                    else:
+                        index = l.index(second_largest_value)
+                else:
+                    continue
+            consensus_seq += self.amino_acids[index]
+
+        return consensus_seq
+    #finding second largest number in a list(found this on stack overflow)
+    def second_largest(self,numbers):
+        count = 0
+        m1 = m2 = float('-inf')
+        for x in numbers:
+                count += 1
+                if x > m2:
+                        if x >= m1:
+                                m1, m2 = x, m1
+                        else:
+                                m2 = x
+
+        return m2 if count >= 2 else None
+
+
+    def consensus_sequence(self,sequences, pm):
+    #find consensus sequence from sequences in list format (with dashes)
+        consensus_seq = ''
+        #pm = profile_matrix(sequences)
+        sequence_length = len(sequences[0]) #length of any sequence
+        for i in range(sequence_length):
+                l = []
+                for aa in pm:
+                        l.append(pm[aa][i]) #list of probabilities of amino acid 'aa' at every position
+                max_value = max(l) #find maximum value in the above list
+                indices = self.get_all_indices(l, max_value) #get all indices in the list which have the above maximum value
+                index = indices[0] #get first index
+            
+                if self.amino_acids[index] == '-': #if amino acid at that index is a dash
+                        if l[index] < 0.5: #if probability of occurence of dash is less than 0.5
+                                second_largest_value = self.second_largest(l) #then find the second largest value
+                                if second_largest_value == max_value: #if second largest and largest and largest values are equal, then get the second index from the list of max values
+                                        index = indices[1]
+                                else:
+                                    index = l.index(second_largest_value) #get index of amino acid with second largest probability of occurence (after dash)
+                        #else:
+                        #        continue #if probability of occurence of dash is greater than 0.5 then skip adding an amino acid at that position
+
+                consensus_seq += self.amino_acids[index] #append amino acid to consensus sequence
+
+        return consensus_seq
+
+
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
-        #seq_length_list is length of each fasta sequence
-        a=Alignment()
-        sequences=seqlist
-        name_list=idlist
-        number_of_sequences=num_seq
+        #seq_length_list is length of each fasta sequence.
         iteration =1 
         loa = 0
-        condition = 'no_condition'
-        #some variables which will be used for the break condition later
-        x = 0.1*mode[0]
-        y = mode[0] - x
         count=0
         #break_tags.txt needs to be deleted manually each time?
         f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
+        print ("----------------")
         while True:
+            a=Alignment()
+            print("Iteration Number: " + str(iteration) + '*'*30)
             count=count+1
             print ("Count=",count)
-#           print("Iteration Number: " + str(iteration) + '*'*30)
             name_list,sequences,number_of_sequences=a.family_to_string(write_file)
-            
-            length_of_alignment = len(sequences[0])
-
+            seq_length_list=a.sequence_length_dist(sequences)
+            a=[]
+            for i in sequences:
+                a+=[str(''.join(i))]
+            sequences=a
+            length_of_alignment=seq_length_list[0]
+            print ("Length of alignment=",length_of_alignment)
             #here loa is the length of alignment from the previous iteration
             #length_of_aligment is the length of alignment in the current iteration
-            #saving break condition in a variable
-            self.check_break_conditions(num_seq,length_of_alignment,loa,mode)
-            if (number_of_sequences < 500) or (length_of_alignment < y) or (loa == length_of_alignment):
-                #write break condition along with filename in break_tags.txt 
-                f_tag.write(filename + ' ' + condition)
-                #write final refined alignment to a file 
-                Popen(['cp','-r',write_file,refined_alignment_file],stdout=f,stderr=PIPE)
-                f = open(final_consensus, 'w')
-                f.write('>consensus-from-refined-alignment' + '\n') #write final consensus sequence to a file
-                f.write(cs + '\n')
-                break    
+            #Check for break conditions.
+            breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
+            if True in breaks:
+              #copy file to refined file
+              p=Popen(['cp','-r',write_file,refined_file],stdin=PIPE,stdout=PIPE)
+              p.communicate()
+              #save consensus
+              #get hmm from refined file
+              #Use profile to emit N sequences.
+              #align hmm sequences with refined file to generate hmm sequences.
+              break
+            pm = self.profile_matrix(sequences) #profile matrix
+            cs = self.consensus_sequence_nd(sequences, pm) #consensus sequence at current iteration
+
 
 def main():
     #All this goes into protocol.py
@@ -293,7 +357,9 @@ def main():
     mafft_seq_length_list=a.sequence_length_dist(mafft_out)
     #Now iterate.
     write_file=mafft_out
-    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file)
+    refined_file= home+'temp_files/PF04398_refined.fasta'
+    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file)
+    
 
 
 main()
