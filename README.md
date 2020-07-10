@@ -54,6 +54,7 @@
 - I need a paper for the method followed for consensus design. 
 - Are temp_files being overwritten before they are read? Multiple threads necessary? Popen helps here. 
 - Your CD-hit input files (write.fasta) have sequences distributed across multiple lines. Does this affect SeqIO? 
+- Where is consensus being calculated inside the while loop? It's copying the mafft file to refined_alignment.
 
 
 
