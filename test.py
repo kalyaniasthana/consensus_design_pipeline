@@ -59,7 +59,7 @@ class Alignment():
         self.amino_acids=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y','-']
         return
     def family_to_string(self,fam_file):
-        print (">>family_to_string:",fam_file,"\n")
+        print (">>Alignment:family_to_string:",fam_file,"\n")
         #Read all sequences in fasta family file and return all proteins as list of strings.
         fasta_sequences = SeqIO.parse(open(fam_file),'fasta')
         seqlist=[];idlist=[]
@@ -100,12 +100,10 @@ class Alignment():
 
     def fasta_to_mafft(self,in_file, out_file):
         print (">>Alignment:fasta_to_mafft\n",in_file,out_file)
-        cmd = 'mafft ' + in_file + ' > ' + out_file
         f=open(out_file,"w+")
         process=Popen(['mafft',in_file],stdout=f,stderr=PIPE)
         stdout, stderr = process.communicate()
-        print (stdout)
-
+        f.close()
         return stdout,stderr
 
     def cdhit(self,in_file, out_file):
@@ -142,7 +140,7 @@ class Alignment():
                         fout.write(line[30: ].upper())
     
     def sequence_length_dist(self,seqlist):
-        print (">>Aligment:sequence_length_dist:")
+        print (">>Aligment:sequence_length_dist\n")
         #Get sequence length distribution from sequencelist
         seq_length_list=[]
         for i in seqlist:
@@ -155,6 +153,7 @@ class Alignment():
         plt.savefig(name+'.pdf')        
 
     def mode_of_list(self,sequence_lengths):
+        print (">>Alignment:mode_of_list\n")
         n = len(sequence_lengths)
         data = Counter(sequence_lengths) 
         get_mode = dict(data) 
@@ -165,6 +164,7 @@ class Alignment():
                 return mode
 
     def alignment(self,option, in_file, out_file):
+        print (">>Alignment: alignment\n",in_file,out_file)
         #Use Case if there could be even more options.
         if option == '1':
                 self.fasta_to_clustalo(in_file, out_file)
@@ -204,102 +204,60 @@ class Consensus(object):
         self.amino_acids=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y','-']
         #self.sequences=sequences
         return
-    def family_to_string(self,filename):
-        print ('>>family_to_string',filename,'\n')
-        #Read family from file and return all proteins as list of strings.
-        #Copy to temp file and remove dashes. 
-        fam=[]
-        with open(filename, "rU") as handle:
-            for record in SeqIO.parse(handle, "fasta"):
-                fam+=record.id
-        return fam
-    def profile_matrix(self,sequences):
-        '''
-        Explain how you construct it. Put a reference, whatever. What is input, what is output?
-        '''
-        sequence_length = len(sequences[0]) #length of first sequences (length of all sequences is the same after alignment)
-        profile_matrix = {} #profile matrix in dictionary format
-        
-        for acid in self.amino_acids:
-                profile_matrix[acid] = [float(0) for i in range(sequence_length)] #initialise all entries in profile matrix to zero
+    def check_break_conditions(self,num_seq,loa1,loa0,mode):
+        #Add any number of conditions here
+        #condition 1
+        c1=(num_seq<500)
+        #condition 2
+        x = 0.1*mode[0]
+        y = mode[0] - x
+        c2=(loa1<y)
+        #Condition 3
+        c3=(loa1==loa0) 
+        print (c1,c2,c3)
+        exit()
+        return c1,c2,c3
 
-        for i in range(len(sequences)):
-                seq = sequences[i].upper() #convert sequence to upper case, just in case it isn't
-                for j in range(len(seq)): #for each letter in the sequence
-                    profile_matrix[seq[j]][j] += float(1) #increase frequency of the letter (seq[j]) at position j
-
-        for aa in profile_matrix: #for amino acid in profile matrix
-                l = profile_matrix[aa] #l i sthe list of frequencies associated with that amino acid
-                for i in range(len(l)): #for position i in l
-                        l[i] /= float(len(sequences)) #divide frequency at i by the length of the list l
-
-        pm = OrderedDict([(x, profile_matrix[x]) for x in self.amino_acids])
-        return pm
-
-
-    def get_all_indices(self,l, value):
-        return [i for i, val in enumerate(l) if val == value]
-    
-    def second_largest(self,numbers):
-        count = 0
-        m1 = m2 = float('-inf') 
-        for x in numbers:
-                count += 1
-                if x > m2:
-                        if x >= m1:
-                                m1, m2 = x, m1
-                        else:
-                                m2 = x
-
-        return m2 if count >= 2 else None
-
-    def consensus1(self,sequences,pm):
-        '''
-        What should the variables sequences and pm contain?? 
-        sequences is list read from families/pm the probability matrix
-        returns one consensus sequence?
-        '''
-        consensus_seq=''
-        sequence_length = len(sequences[0]) #length of first sequence in family.
-        for i in range(sequence_length):
-                l = []
-                for aa in pm:
-                        l.append(pm[aa][i]) #list of probabilities of amino acid 'aa' at every position
-                max_value = max(l) #find maximum value in the above list
-                indices = self.get_all_indices(l, max_value) #get all indices in the list which have the above maximum value
-                index = indices[0] #get first index
-            
-                if self.amino_acids[index] == '-': #if amino acid at that index is a dash
-                        if l[index] < 0.5: #if probability of occurence of dash is less than 0.5
-                            second_largest_value = self.second_largest(l) #then find the second largest value
-                            if second_largest_value == max_value: #if second largest and largest and largest values are equal, then get the second index from the list of max values
-                                index = indices[1]
-                            else:
-                                index = l.index(second_largest_value) #get index of amino acid with second largest probability of occurence (after dash)
-                        else:
-                            continue
-                consensus_seq += self.amino_acids[index]
-
-        return consensus_seq
-    def percentage_identity(self,consensus_fasta):
-        A=Alignment()
-        seqs, head = A.fasta_to_list(consensus_fasta)
-        matches = 0
-        seq_length = len(seqs[0])
-        for i in range(seq_length):
-                if seqs[0][i] == seqs[1][i]:
-                        matches += 1
-        pi = (matches*100)/seq_length
-        return pi
-
-
-
-class DCA(object):
-    def __init__(self):
         return
-    
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file):
+        #idlist is ids of fasta sequences
+        #seqlist is list of fasta sequences
+        #num_seq is number of fasta sequences
+        #seq_length_list is length of each fasta sequence
+        a=Alignment()
+        sequences=seqlist
+        name_list=idlist
+        number_of_sequences=num_seq
+        iteration =1 
+        loa = 0
+        condition = 'no_condition'
+        #some variables which will be used for the break condition later
+        x = 0.1*mode[0]
+        y = mode[0] - x
+        count=0
+        #break_tags.txt needs to be deleted manually each time?
+        f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
+        while True:
+            count=count+1
+            print ("Count=",count)
+#           print("Iteration Number: " + str(iteration) + '*'*30)
+            name_list,sequences,number_of_sequences=a.family_to_string(write_file)
+            
+            length_of_alignment = len(sequences[0])
 
-
+            #here loa is the length of alignment from the previous iteration
+            #length_of_aligment is the length of alignment in the current iteration
+            #saving break condition in a variable
+            self.check_break_conditions(num_seq,length_of_alignment,loa,mode)
+            if (number_of_sequences < 500) or (length_of_alignment < y) or (loa == length_of_alignment):
+                #write break condition along with filename in break_tags.txt 
+                f_tag.write(filename + ' ' + condition)
+                #write final refined alignment to a file 
+                Popen(['cp','-r',write_file,refined_alignment_file],stdout=f,stderr=PIPE)
+                f = open(final_consensus, 'w')
+                f.write('>consensus-from-refined-alignment' + '\n') #write final consensus sequence to a file
+                f.write(cs + '\n')
+                break    
 
 def main():
     #All this goes into protocol.py
@@ -309,7 +267,7 @@ def main():
     #a.fasta_to_mafft('./write.fasta','./test_out')
     #Read list ofs sequences from file.
     home='/Users/sridharn/software/consensus_test_repo/'
-    fam_file=home+'/families/PF04398.fasta'
+    fam_file=home+'families/PF04398.fasta'
     idlist,seqlist,num_seq=a.family_to_string(fam_file)
     assert (len(idlist)==len(seqlist))
     assert (num_seq>=500),'Error: Less than 500 sequences in family'
@@ -324,11 +282,18 @@ def main():
     print ("After clustering with CD-HIT, alignments reduced to",cd_num_seq,"from",num_seq)
     assert (cd_num_seq>=500),'Error: Less that 500 sequences after clustering with CD-HIT'
     #Plot length distribution
-    seq_length_list=a.sequence_length_dist(cd_seqlist)
+    seq_length_list=a.sequence_length_dist(cd_seqlist)   
     a.plot_length_dist(seq_length_list,home+'length_distributions/'+'PF04398_test')    
     #Get_mode.
     mode= a.mode_of_list(seq_length_list)
     #Zeroeth alignment:
-    stdout,stderr=a.fasta_to_mafft(cdhit_out,home+'temp_files/mafft_test.fasta')
-    print (stdout)
+    mafft_out=home+'temp_files/test_mafft.fasta'
+    stdout,stderr=a.fasta_to_mafft(cdhit_out,mafft_out)
+    mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(mafft_out)
+    mafft_seq_length_list=a.sequence_length_dist(mafft_out)
+    #Now iterate.
+    write_file=mafft_out
+    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file)
+
+
 main()
