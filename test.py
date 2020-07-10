@@ -1,5 +1,6 @@
 from subprocess import Popen, PIPE
 import os
+import copy
 import Bio
 from Bio import SeqIO,AlignIO
 from ugly_strings import *
@@ -38,7 +39,7 @@ class Check_files():
         ip = ip.replace('./','')
         return ip
     def list_to_file(self,list1,outfile):
-        print (">>list_to_file: Write fasta without dashes.\n",outfile)
+        print (">>list_to_file: Write fasta.\n",outfile)
         with open(outfile, 'w+') as f:
             for item in list1:
                 f.write("%s\n" % item)
@@ -89,20 +90,20 @@ class Alignment():
         f = open(fastafile,"w+")
         #Write fasta file from ids and protein sequence list.
         assert(len(idlist)==len(seqlist)),'Idlist and sequence list do not match'
-        
         for i in range(0,len(idlist)):
             id='>'+idlist[i];seq=''.join(seqlist[i])
             f.write('%s\n' % (id))
             f.write('%s\n' % (seq))
-            
+
         f.close()
         return
 
     def fasta_to_mafft(self,in_file, out_file):
         print (">>Alignment:fasta_to_mafft\n",in_file,out_file)
         f=open(out_file,"w+")
-        process=Popen(['mafft',in_file],stdout=f,stderr=PIPE)
-        stdout, stderr = process.communicate()
+        p=Popen(['mafft',in_file],stdout=f,stderr=PIPE)
+        stdout, stderr = p.communicate()
+        p.wait()
         f.close()
         return stdout,stderr
 
@@ -180,7 +181,7 @@ class Consensus(object):
     def check_break_conditions(self,num_seq,loa1,loa0,mode,count):
         print ('>>Consensus:check_break_conditions')
         #Add any number of conditions here
-        #condition 1
+        #condition 
         c1=(num_seq<500)
         #condition 2
         x = 0.1*mode[0]
@@ -188,7 +189,7 @@ class Consensus(object):
         c2=(loa1<y)
         #Condition3
         c3=(loa1==loa0) 
-        c4=(count>10)#adding for testing
+        c4=(count>100)#adding for testing
         bools=[c1,c2,c3,c4]
         print (bools)
         return bools
@@ -217,7 +218,8 @@ class Consensus(object):
     def get_all_indices(self,l, value):
         return [i for i, val in enumerate(l) if val == value]
 
-    def consensus_sequence_nd(self,sequences, pm):
+    def consensus_sequence_nd(self,pm,sequences):
+        print (">>Consensus:consensus_sequence_nd: No dashes in consensus")
         consensus_seq = ''
         sequence_length = len(sequences[0])
         for i in range(sequence_length):
@@ -239,6 +241,7 @@ class Consensus(object):
             consensus_seq += self.amino_acids[index]
 
         return consensus_seq
+    
     #finding second largest number in a list(found this on stack overflow)
     def second_largest(self,numbers):
         count = 0
@@ -280,9 +283,58 @@ class Consensus(object):
                 consensus_seq += self.amino_acids[index] #append amino acid to consensus sequence
 
         return consensus_seq
+    #finding index of bad sequence numbers in the sequence list
+    def find_bad_sequences(self,profile_matrix, sequences, name_list):
+        print (">>Consensus:find_bad_sequences")
+        max_value = max(profile_matrix['-']) #max probability of finding a dash
+        if max_value == 1: #just in case there are dashes in every sequence at that position
+                max_value = second_largest(profile_matrix['-'])
 
+        positions = [] 
+        for i in range(len(profile_matrix['-'])):
+                if profile_matrix['-'][i] == max_value: #all positions at which probability of finding a dash is maximum
+                        positions.append(i)
 
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file):
+        bad_sequence_numbers = []
+        for i in range(len(sequences)):
+                for position in positions:
+                        if sequences[i][position] != '-': #if sequence does not have a dash at the position where probability of finding a dash is the maximum
+                                if i not in bad_sequence_numbers: #if sequence is not already in the list
+                                        bad_sequence_numbers.append(i)
+
+        return bad_sequence_numbers
+    def remove_bad_sequences(self,sequences, name_list, bad_sequence_numbers):
+        print (">>Consensus:bad_sequence_numbers")
+        sequences = [x for i, x in enumerate(sequences) if i not in bad_sequence_numbers]
+        name_list = [x for i, x in enumerate(name_list) if i not in bad_sequence_numbers]
+        return sequences, name_list
+
+    #write sequence list and main list to fasta file
+    def list_to_fasta(self,sequences, name_list, fasta_file):
+        file = open(fasta_file, 'w')
+        for i in range(len(sequences)):
+                file.write('>' + name_list[i] + '\n' + sequences[i].upper() + '\n')
+        file.close()
+    def remove_dashes(self,fasta_file_from, fasta_file_to):
+        with open(fasta_file_from) as fin, open(fasta_file_to, 'w') as fout:
+                for line in fin:
+                        if line.startswith('>'):
+                                fout.write(line)
+                        else:
+                                fout.write(line.translate(str.maketrans('', '', '-')))
+
+    def sequencestr_to_seq_list(self,sequence):
+        #Convert conensus.py sequence variable (list of strings) to (list of lists). 
+        j=[]
+        for i in sequence:
+            j+=[list(i)]
+        return j
+    def copy_file(self,f1,f2):
+        p=Popen(['cp','-r',f1,f2],stdin=PIPE,stdout=PIPE)
+        p.communicate()
+        p.wait()
+        return
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
@@ -292,7 +344,7 @@ class Consensus(object):
         count=0
         #break_tags.txt needs to be deleted manually each time?
         f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
-        print ("----------------")
+        print ("----------------WHILE LOOP---------------")
         while True:
             a=Alignment()
             print("Iteration Number: " + str(iteration) + '*'*30)
@@ -300,27 +352,45 @@ class Consensus(object):
             print ("Count=",count)
             name_list,sequences,number_of_sequences=a.family_to_string(write_file)
             seq_length_list=a.sequence_length_dist(sequences)
-            a=[]
+            a1=[]
             for i in sequences:
-                a+=[str(''.join(i))]
-            sequences=a
+                a1+=[str(''.join(i))]
+            sequences=a1
             length_of_alignment=seq_length_list[0]
-            print ("Length of alignment=",length_of_alignment)
-            #here loa is the length of alignment from the previous iteration
-            #length_of_aligment is the length of alignment in the current iteration
+            print ("Length of current alignment=",length_of_alignment)
+            print ("Length of previous alignment=",loa)
             #Check for break conditions.
             breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
             if True in breaks:
               #copy file to refined file
-              p=Popen(['cp','-r',write_file,refined_file],stdin=PIPE,stdout=PIPE)
-              p.communicate()
+              self.copy_file(write_file,refined_alignment)
               #save consensus
               #get hmm from refined file
               #Use profile to emit N sequences.
               #align hmm sequences with refined file to generate hmm sequences.
               break
-            pm = self.profile_matrix(sequences) #profile matrix
-            cs = self.consensus_sequence_nd(sequences, pm) #consensus sequence at current iteration
+            pm = self.profile_matrix(sequences)
+            cs = self.consensus_sequence_nd(pm,sequences) 
+            print ("CONSENSUS SEQUENCE LENGTH=",len(cs),"\n")
+            #Reproduces from consensus.py correctly this far.
+            bad_sequence_numbers = self.find_bad_sequences(pm, sequences, name_list)
+            sequences, name_list = self.remove_bad_sequences(sequences, name_list, bad_sequence_numbers)
+            seq_list=self.sequencestr_to_seq_list(sequences)
+            #Remove_dashes from sequence list
+            seq_list,num_seq=a.remove_dashes_list(seq_list)
+            assert(len(name_list)==len(seq_list))
+            a.write_fasta(name_list,seq_list,out_file)
+            print ("After removing bad sequences from",num_seq,"sequences remain.")
+            #Align
+            a.fasta_to_mafft(out_file,write_file)
+            loa=length_of_alignment
+            iteration=iteration+1
+            #Now file I/O!!!!!seq->temp_file->out_file->write_file!!
+            #Do this in the list itself instead of I/O,
+            print (temp_file)
+            print (out_file)
+            print (write_file)        
+            print(cs, len(cs), 'Consensus from refined alignment')
 
 
 def main():
@@ -332,34 +402,34 @@ def main():
     #Read list ofs sequences from file.
     home='/Users/sridharn/software/consensus_test_repo/'
     fam_file=home+'families/PF04398.fasta'
+    mafft_out=home+'temp_files/test_mafft.fasta'
+    out_file=home+'temp_files/test_output.fasta'
+    write_file=home+'temp_files/test_write.fasta'
+    temp_file=home+'temp_files/test_temp.fasta'
+    #Read family file 
     idlist,seqlist,num_seq=a.family_to_string(fam_file)
     assert (len(idlist)==len(seqlist))
     assert (num_seq>=500),'Error: Less than 500 sequences in family'
     #Remove dashes
     wod,num_seq=a.remove_dashes_list(seqlist)
     #cdhit cluster
-    a.write_fasta(idlist,wod,home+'temp_files/test_write.fasta')
-    cdhit_out=home+'temp_files/test_cdhit.fasta'
-    cdhit_in=home+'/temp_files/test_write.fasta'
-    a.cdhit(cdhit_in,cdhit_out)
-    cd_idlist,cd_seqlist,cd_num_seq=a.family_to_string(cdhit_out)
+    a.write_fasta(idlist,wod,write_file)
+    a.cdhit(write_file,out_file)
+    cd_idlist,cd_seqlist,cd_num_seq=a.family_to_string(out_file)
     print ("After clustering with CD-HIT, alignments reduced to",cd_num_seq,"from",num_seq)
     assert (cd_num_seq>=500),'Error: Less that 500 sequences after clustering with CD-HIT'
     #Plot length distribution
     seq_length_list=a.sequence_length_dist(cd_seqlist)   
-    a.plot_length_dist(seq_length_list,home+'length_distributions/'+'PF04398_test')    
+    #a.plot_length_dist(seq_length_list,home+'length_distributions/'+'PF04398_test')    
     #Get_mode.
     mode= a.mode_of_list(seq_length_list)
-    #Zeroeth alignment:
-    mafft_out=home+'temp_files/test_mafft.fasta'
-    stdout,stderr=a.fasta_to_mafft(cdhit_out,mafft_out)
-    mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(mafft_out)
-    mafft_seq_length_list=a.sequence_length_dist(mafft_out)
+    #Zeroeth alignmenst
+    stdout,stderr=a.fasta_to_mafft(out_file,write_file)
+    mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(write_file)
+    mafft_seq_length_list=a.sequence_length_dist(write_file)
     #Now iterate.
-    write_file=mafft_out
-    refined_file= home+'temp_files/PF04398_refined.fasta'
-    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file)
-    
+    refined_file= home+'temp_files/test_PF04398_refined.fasta'
+    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file)
 
 
 main()
