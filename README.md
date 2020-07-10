@@ -54,7 +54,6 @@
 
 - Are temp_files being overwritten before they are read? Multiple threads necessary? Popen helps here. 
 - CD-hit input files (write.fasta) have sequences distributed across multiple lines. Does this affect SeqIO? 
-- Where is consensus being calculated inside the while loop (line 394)? It's copying the mafft file (last stored from alignment(option,out_file, write_file)to refined_alignment. That is the consensus sequence? the consensus fuction is not called here.  Copy inside the if loop? Aren't we copying the same thing multiple times here.
-
+- Where is consensus being calculated inside the while loop (line 394)? It's copying the mafft file (last stored from alignment(option,out_file, write_file)to refined_alignment. That is the consensus sequence? the consensus fuction is not called here.  Copy inside the if loop? Aren't we copying the same thing multiple times here. (Never mind. Didn't see the part below the break. 
 
 
