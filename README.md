@@ -54,17 +54,6 @@
 - I need a paper for the method followed for consensus design. 
 - Are temp_files being overwritten before they are read? Multiple threads necessary? Popen helps here. 
 - Your CD-hit input files (write.fasta) have sequences distributed across multiple lines. Does this affect SeqIO? 
-Example:
-'''
->G3VNJ6_SARHA/71-197
 
-IITKLFCRQGFYLQANPDGSI
-NGTQEDTSSFT
-QFNLIPVGLRVVTIQSTKLGHYVA
-MNAEGLLYSSPHFTA
-ECRFKECVFENYYVLYASALYRQ
-SRSGRAWYLGLDKEGHVMKGNRVKKT
-KAAAHFV
-'''
 
 
