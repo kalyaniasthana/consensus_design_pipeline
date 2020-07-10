@@ -45,16 +45,16 @@
 
 ### Some important points
 
-- You must have noticed that the refined_consensus is generated without dashes. The refined_consensus is realigned to the refined_alignment to get back the dashes. I call this **strategy 1** of getting the refined_consensus.
+- You must have noticed that the refined_consensus is generated without dashes. The refined_consensus is realigned to the refined_alignment to get back the dashes. I call this **strategy 1** of getting the refined_consensus
 - There is another strategy, **strategy 2**: just get the refined_consensus with the dashes. 
 - refined_consensuses from both strategies should be more or less the same right? or at least have similar dca energies? But this is not what we are observing. The refined_consensus from strategy 2 has very high dca energy for all families that I tested. Doesn't make any sense. That's why we thought that there's a big somewhere. 
 - There are some useless/unused functions in consensus.py and pydca_consensus.py. I think it's time to get rid of those as well. 
 
 ###### Let me know if you want me to include explanations for each function as well.
-- I need a paper for the method followed for consensus design. 
+
 - Are temp_files being overwritten before they are read? Multiple threads necessary? Popen helps here. 
-- Your CD-hit input files (write.fasta) have sequences distributed across multiple lines. Does this affect SeqIO? 
-- Where is consensus being calculated inside the while loop? It's copying the mafft file to refined_alignment.
+- CD-hit input files (write.fasta) have sequences distributed across multiple lines. Does this affect SeqIO? 
+- Where is consensus being calculated inside the while loop? It's copying the mafft file (last stored from alignment(option,out_file, write_file)to refined_alignment. That is the consensus sequence? the consensus fuction is not called here?
 
 
 
