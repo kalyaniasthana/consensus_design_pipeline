@@ -24,6 +24,16 @@ class Check_files():
             print ("Fatal: File not found",f)
             exit()
         return False
+    def execs_exist(self):
+        import distutils
+        x=[]
+        execlist=['hmmbuild']
+        for i in execlist:
+            x+=distutils.spawn.find_executable(i)
+        if False in X:
+            print ("One of the required programs is missing")
+            exit()
+        
     def common_files(self):
         cwd=self.cwd
         a,b,c,d=common_files()
@@ -81,7 +91,7 @@ class Alignment():
         return idlist,seqlist,numseq
 
     def remove_dashes_list(self,wd):
-        print (">>Alignment:remove_dashes_list:\n")
+        print (">>Alignment:remove_dashes_list")
         #wd: list of strings with dashes
         #wod: list of strings without dashes.
         wod=[]
@@ -105,14 +115,11 @@ class Alignment():
 
         f.close()
         return
-
     def fasta_to_mafft(self,in_file, out_file):
         print (">>Alignment:fasta_to_mafft\n",in_file,out_file)
         f=open(out_file,"w+")
         p=Popen(['mafft',in_file],stdout=f,stderr=PIPE)
-        stdout, stderr = p.communicate()
-        p.wait()
-        f.close()
+        stdout, stderr = p.communicate();p.wait();f.close()
         return stdout,stderr
 
     def cdhit(self,in_file, out_file):
@@ -121,15 +128,6 @@ class Alignment():
         stdout, stderr = process.communicate()
         process.wait()
         return stdout,stderr
-
-    def stockholm_to_fasta(self,ifile, ofile):
-        with open(ifile, 'r') as fin:
-                with open(ofile, 'w') as fout:
-                        sequences = Bio.SeqIO.parse(ifile, 'stockholm')
-                        Bio.SeqIO.write(sequences, ofile, 'fasta')
-        os.system('rm -rf ' + ifile)
-        return
-
     def fasta_to_plain(self,accession, filename):
         alignment = AlignIO.read(open(filename, 'fasta'))
         sequences = [record.seq for record in alignment]
@@ -139,14 +137,6 @@ class Alignment():
                         f.write(str(seq))
                         f.write('\n')
         return        
-
-    def selex_to_fasta(self,in_file, out_file):
-        with open(in_file) as fin, open(out_file, 'w') as fout:
-                headers = []
-                sequences = []
-                for line in fin:
-                        fout.write('>' + line[0:30].upper() + '\n')
-                        fout.write(line[30: ].upper())
     
     def sequence_length_dist(self,seqlist):
         print (">>Aligment:sequence_length_dist\n")
@@ -171,17 +161,20 @@ class Alignment():
                 return None
         else:
                 return mode
-
-
+    def realign(self,original_alignment,hmm_sequences, out_file):
+        print ("Alignment:realign",original_alignment,hmm_sequences,out_file)
+        #f=open(out_file,"w+")
+        cwd = 'mafft --add ' + hmm_sequences + ' --reorder --keeplength ' + original_alignment + ' > ' + out_file
+        p=Popen(['mafft','-add',hmm_sequences,'--reorder','--keeplength'+original_alignment,'>',out_file],stdout=PIPE,stderr=PIPE)
+        stdout,stderr=p.communicate();p.wait()
+        return stderr
 
 class Consensus(object):
     '''
     Class containing various methods of finding a consensus sequence for one family.
     Should become its own module in due course.
-    print (">>family_to_string:",fam_file)
     Should we pass 'sequences' as an instance for the entire Consensus class?
     '''
-
     def __init__(self):
         self.amino_acids=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y','-']
         #self.sequences=sequences
@@ -197,11 +190,13 @@ class Consensus(object):
         c2=(loa1<y)
         #Condition3
         c3=(loa1==loa0) 
-        c4=(count>100)#adding for testing
+        c4=(count>1000)#adding for testing
+        if c4:
+            print ("Fatal: Number of iterations exceeded",count)
+            exit()
         bools=[c1,c2,c3,c4]
         print (bools)
         return bools
-
     def profile_matrix(self,sequences):
         print (">>Consensus:profile_matrix")
         #print (sequences)
@@ -209,23 +204,19 @@ class Consensus(object):
         profile_matrix = {} #profile matrix in dictionary format
         for acid in self.amino_acids:
                 profile_matrix[acid] = [float(0) for i in range(sequence_length)] #initialise all entries in profile matrix to zero
-
         for i in range(len(sequences)):
                 seq = sequences[i].upper() #convert sequence to upper case, just in case it isn't
                 for j in range(len(seq)): #for each letter in the sequence
                     profile_matrix[seq[j]][j] += float(1) #increase frequency of the letter (seq[j]) at position j
-
         for aa in profile_matrix: #for amino acid in profile matrix
                 l = profile_matrix[aa] #l i sthe list of frequencies associated with that amino acid
                 for i in range(len(l)): #for position i in l
                         l[i] /= float(len(sequences)) #divide frequency at i by the length of the list l
-
         pm = OrderedDict([(x, profile_matrix[x]) for x in self.amino_acids])
         return pm
 
     def get_all_indices(self,l, value):
         return [i for i, val in enumerate(l) if val == value]
-
     def consensus_sequence_nd(self,pm,sequences):
         print (">>Consensus:consensus_sequence_nd: No dashes in consensus")
         consensus_seq = ''
@@ -339,9 +330,7 @@ class Consensus(object):
         stdout,stderr=p.communicate()
         p.wait()
         return
-    def hmm_stuff(self,refined_file,profile_hmm_file):
-        return
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file):
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
@@ -349,13 +338,12 @@ class Consensus(object):
         loa = 0
         count=0
         #break_tags.txt needs to be deleted manually each time?
-        f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
-        print ("----------------WHILE LOOP---------------")
+        #f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
+        print ("-"*30,'WHILE LOOP',"-"*30)
         while True:
             count=count+1
             a=Alignment();h=HMM()
             print('*'*30,"Iteration Number: " + str(count) + '*'*30)
-            print ("Count=",count)
             name_list,sequences,number_of_sequences=a.family_to_string(write_file)
             seq_length_list=a.sequence_length_dist(sequences)
             a1=[]
@@ -363,27 +351,29 @@ class Consensus(object):
                 a1+=[str(''.join(i))]
             sequences=a1
             length_of_alignment=seq_length_list[0]
+            print ("Number of sequences=",number_of_sequences)
             print ("Length of current alignment=",length_of_alignment)
             print ("Length of previous alignment=",loa)
             #Check for break conditions.
             breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
             if True in breaks:
+              print ("*"*30,"End of while loop","*"*30)
               #copy file to refined file
               self.copy_file(write_file,refined_file)
               #save consensus
               a.write_fasta(['>>consensus-from-refined-alignment'],[cs],final_consensus_file)
               #construct profile hmm from msa.(Is all this needed inside the while loop???)
-              profile_hmm_file=('/Users/sridharn/software/consensus_test_repo/temp_files/test.hmm')
-              print (profile_hmm_file,refined_file)
-              h.call_hmmbuild(profile_hmm_file,refined_file)
-              #Use profile to emit N sequences.
-              
+              #output is profile_hmm_file
+              h.hmmbuild(profile_hmm_file,refined_file)
+              h.emit_n_sequences(number_of_sequences,length_of_alignment,profile_hmm_file,hmm_emitted_file)              
               #align hmm sequences with refined file to generate hmm sequences.
+              a.realign(refined_file,hmm_emitted_file,combined_alignment_file)
+
               break
             pm = self.profile_matrix(sequences)
             cs = self.consensus_sequence_nd(pm,sequences) 
-            print (cs)
-            print ("CONSENSUS SEQUENCE LENGTH=",len(cs),"\n")
+            #print (cs)
+            print ("Consensus sequence length=",len(cs),"\n")
             #Reproduces from consensus.py correctly this far.
             bad_sequence_numbers = self.find_bad_sequences(pm, sequences, name_list)
             sequences, name_list = self.remove_bad_sequences(sequences, name_list, bad_sequence_numbers)
@@ -405,32 +395,38 @@ class HMM(object):
     '''
     def __init__(self):
         return
-    def call_hmmbuild(self,hmmfile_out,msafile):
+    def hmmbuild(self,hmmfile_out,msafile):
+        #hmmbuild [options] hmmfile alignfile (hmmfile is out, alignfile is in.)
         print ('>>HMM:call_hmmbuild')
         f=open(hmmfile_out,'w+')
-        p=Popen(['hmmbuild',hmmfile_out,'-o',msafile],stdout=f,stderr=PIPE)
+        p=Popen(['hmmbuild',hmmfile_out,msafile],stdout=PIPE,stderr=PIPE)
         stdout, stderr = p.communicate()
         p.wait()
         f.close()
         return stdout
-    def emit_n_sequences(self,number_of_sequences,length_of_alignment,profile_hmm_file):
+    def emit_n_sequences(self,number_of_sequences,length_of_alignment,profile_hmm_file,hmm_emitted_file):
+        print (">>HMM:emit_n_sequences")
+        #ßcwd = 'hmmemit -N ' + str(N) + ' -o ' + hmm_emitted_sequences + '-L' + str(L) + ' ' + profile_hmm #emit sequences from prpofile hmm
+
+        #Worth initialising filenames as instances global to the entire class?
         N=str(number_of_sequences);L=str(length_of_alignment)
-        p=Popen(['hmmemit','-N',N,'-o',hmm_emitted_sequences,'-L',L,profile_hmm_file],stdout=PIPE,stderr=PIPE)
+        p=Popen(['hmmemit','-N',N,'-o',hmm_emitted_file,'-L',L,'-p',profile_hmm_file],stdout=PIPE,stderr=PIPE)
+        stdout,stderr=p.communicate(); p.wait()
+        return
 def main():
     #All this goes into protocol.py 
     #Add argparse arguments for options.
     import argparse
     parser = argparse.ArgumentParser(description="Give it a name YO!!")
-    parser.add_argument("--fid","-fid",help="Family ID. e.g.PF04398.fasta")
+    parser.add_argument("--fid","-fid",help="Family ID. e.g.PF04398")
     parser.add_argument("--fidlist","-fidlist", help="File containing list of family IDs. e.g. accession_list.txt")
+    parser.add_argument("--con","-con", help="Generate consensus only. Options for different methods?")
+    parser.add_argument("--hmm","-hmm",help="Generate profile hmm and emmit hmm sequences.Args:N,L.")
     args = parser.parse_args()
     #Initialize classes.
-    ch=Check_files()
-    a=Alignment()
-    con=Consensus()
-    #home_directory is working directory.
-    home=os.getcwd()
+    ch=Check_files();a=Alignment();con=Consensus();home=os.getcwd()
     #Read list ofs sequences from file.
+    ###############
     if args.fid:
         accession=str(args.fid)
         ch.file_exists(home+'/families/'+accession+'.fasta')
@@ -439,6 +435,9 @@ def main():
         ch.file_exists(f1)
         accession_list=(open(f1,'r').read().split('\n')[:-1])
         accession=accession_list[0] #??Loop over this in final code for all families??.
+   ############## 
+    #Check all executables/dependencies exist:
+    #ch.execs_exist()
     fam_file=home+'/families/'+accession+'.fasta'
     mafft_out=home+'/temp_files/test_mafft.fasta'
     #Following ugly_strings. Ugly_strings are very ugly.
@@ -469,11 +468,12 @@ def main():
     #Now iterate.
     refined_file= home+'/temp_files/test_PF04398_refined.fasta'
     final_consensus_file=home+'/temp_files/test_PF04398_final_consensus.fasta'
-    #Get consensus through iterative msa alignment with mafft
-    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,    write_file,refined_file,temp_file,out_file,final_consensus_file)
-    #Get hmm profile
-    h=HMM()
-
+    profile_hmm_file=home+'/temp_files/test_profile.hmm'
+    hmm_emitted_file=home+'/temp_files/test_hmmsequences.fasta'
+    combined_alignment_file=home+'/temp_files/test_combined.hmm'
+    #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
+    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file)    
+    
 
 
 main()
