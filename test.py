@@ -42,10 +42,7 @@ class Check_files():
         cwd=self.cwd
         a,b,c,d,e,f=specific_files(filename)
         return cwd+a,cwd+b,cwd+c,cwd+d,cwd+e,cwd+f
-    def pydca_strings(self,filename):
-        cwd=self.cwd
-        a,b,c,d,e,f,g,h,i,j=pydca_strings(filename)
-        return cwd+a,cwd+b,cwd+c,cwd+d,cwd+e,cwd+f,cwd+g,cwd+h,cwd+i,cwd+j
+
     def fam_exist(self,accession):
         x=self.cwd+'families/'+accession+'.fasta'
         #print (x)
@@ -128,16 +125,7 @@ class Alignment():
         stdout, stderr = process.communicate()
         process.wait()
         return stdout,stderr
-    def fasta_to_plain(self,accession, filename):
-        alignment = AlignIO.read(open(filename, 'fasta'))
-        sequences = [record.seq for record in alignment]
-        plain_file = 'temp_files/' + accession + '_refined_noheader.txt'
-        with open(plain_file, 'w') as f:
-                for seq in sequences:
-                        f.write(str(seq))
-                        f.write('\n')
-        return        
-    
+
     def sequence_length_dist(self,seqlist):
         print (">>Aligment:sequence_length_dist\n")
         #Get sequence length distribution from sequencelist
@@ -162,12 +150,12 @@ class Alignment():
         else:
                 return mode
     def realign(self,original_alignment,hmm_sequences, out_file):
-        print ("Alignment:realign",original_alignment,hmm_sequences,out_file)
-        #f=open(out_file,"w+")
-        cwd = 'mafft --add ' + hmm_sequences + ' --reorder --keeplength ' + original_alignment + ' > ' + out_file
-        p=Popen(['mafft','-add',hmm_sequences,'--reorder','--keeplength'+original_alignment,'>',out_file],stdout=PIPE,stderr=PIPE)
-        stdout,stderr=p.communicate();p.wait()
-        return stderr
+        print (">>Alignment:realign",original_alignment,hmm_sequences,out_file)
+        f=open(out_file,"w+")
+        p=Popen(['mafft','--add',hmm_sequences,'--reorder','--keeplength',original_alignment],stdout=f,stderr=PIPE)
+        p.wait();stderr, stdout = p.communicate();f.flush();f.close()
+        #print (stderr)
+        return stdout
 
 class Consensus(object):
     '''
@@ -304,21 +292,7 @@ class Consensus(object):
         sequences = [x for i, x in enumerate(sequences) if i not in bad_sequence_numbers]
         name_list = [x for i, x in enumerate(name_list) if i not in bad_sequence_numbers]
         return sequences, name_list
-
-    #write sequence list and main list to fasta file
-    def list_to_fasta(self,sequences, name_list, fasta_file):
-        file = open(fasta_file, 'w')
-        for i in range(len(sequences)):
-                file.write('>' + name_list[i] + '\n' + sequences[i].upper() + '\n')
-        file.close()
-    def remove_dashes(self,fasta_file_from, fasta_file_to):
-        with open(fasta_file_from) as fin, open(fasta_file_to, 'w') as fout:
-                for line in fin:
-                        if line.startswith('>'):
-                                fout.write(line)
-                        else:
-                                fout.write(line.translate(str.maketrans('', '', '-')))
-
+                
     def sequencestr_to_seq_list(self,sequence):
         #Convert conensus.py sequence variable (list of strings) to (list of lists). 
         j=[]
@@ -410,9 +384,18 @@ class HMM(object):
 
         #Worth initialising filenames as instances global to the entire class?
         N=str(number_of_sequences);L=str(length_of_alignment)
+        #profile_hmm_file=profile_hmm_file+'_'+N
         p=Popen(['hmmemit','-N',N,'-o',hmm_emitted_file,'-L',L,'-p',profile_hmm_file],stdout=PIPE,stderr=PIPE)
         stdout,stderr=p.communicate(); p.wait()
         return
+class DCA(object):
+    def __init__(self):
+        self.mappings = {'A': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, 'I': 8, 'K': 9, 'L': 10, 'M': 11,
+'N': 12, 'P': 13, 'Q': 14, 'R': 15, 'S': 16, 'T': 17, 'V': 18, 'W': 19, 'Y': 20, '-': 21}
+        return
+
+
+
 def main():
     #All this goes into protocol.py 
     #Add argparse arguments for options.
@@ -470,7 +453,7 @@ def main():
     final_consensus_file=home+'/temp_files/test_PF04398_final_consensus.fasta'
     profile_hmm_file=home+'/temp_files/test_profile.hmm'
     hmm_emitted_file=home+'/temp_files/test_hmmsequences.fasta'
-    combined_alignment_file=home+'/temp_files/test_combined.hmm'
+    combined_alignment_file=home+'/temp_files/test_combined.fasta'
     #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
     con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file)    
     
