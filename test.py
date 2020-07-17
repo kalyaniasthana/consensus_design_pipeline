@@ -157,6 +157,15 @@ class Alignment():
         #print (stderr)
         return stdout
 
+    def split_combined_alignment(self, combined_alignment_file, hmm_emitted_file_aligned):
+        print('>>Alignment:split_combined_alignment')
+        hmm_sequences_records = []
+        with open(hmm_emitted_file_aligned, 'w') as fin:
+            for record in SeqIO.parse(combined_alignment_file, 'fasta'):
+                if 'refined' in record.id:
+                    hmm_sequences_records.append(record)
+        SeqIO.write(hmm_sequences_records, hmm_emitted_file_aligned, 'fasta')
+
 class Consensus(object):
     '''
     Class containing various methods of finding a consensus sequence for one family.
@@ -304,7 +313,7 @@ class Consensus(object):
         stdout,stderr=p.communicate()
         p.wait()
         return
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file):
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
@@ -316,7 +325,7 @@ class Consensus(object):
         print ("-"*30,'WHILE LOOP',"-"*30)
         while True:
             count=count+1
-            a=Alignment();h=HMM()
+            a=Alignment();h=HMM();d = DCA()
             print('*'*30,"Iteration Number: " + str(count) + '*'*30)
             name_list,sequences,number_of_sequences=a.family_to_string(write_file)
             seq_length_list=a.sequence_length_dist(sequences)
@@ -342,6 +351,7 @@ class Consensus(object):
               h.emit_n_sequences(number_of_sequences,length_of_alignment,profile_hmm_file,hmm_emitted_file)              
               #align hmm sequences with refined file to generate hmm sequences.
               a.realign(refined_file,hmm_emitted_file,combined_alignment_file)
+              a.split_combined_alignment(combined_alignment_file, hmm_emitted_file_aligned)
 
               break
             pm = self.profile_matrix(sequences)
@@ -390,9 +400,9 @@ class HMM(object):
         return
 class DCA(object):
     def __init__(self):
-        self.mappings = {'A': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, 'I': 8, 'K': 9, 'L': 10, 'M': 11,
-'N': 12, 'P': 13, 'Q': 14, 'R': 15, 'S': 16, 'T': 17, 'V': 18, 'W': 19, 'Y': 20, '-': 21}
-        return
+        path=os.getcwd()+'/'
+        self.cwd=path
+
 
 
 
@@ -449,13 +459,15 @@ def main():
     mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(write_file)
     mafft_seq_length_list=a.sequence_length_dist(write_file)
     #Now iterate.
-    refined_file= home+'/temp_files/test_PF04398_refined.fasta'
-    final_consensus_file=home+'/temp_files/test_PF04398_final_consensus.fasta'
-    profile_hmm_file=home+'/temp_files/test_profile.hmm'
-    hmm_emitted_file=home+'/temp_files/test_hmmsequences.fasta'
-    combined_alignment_file=home+'/temp_files/test_combined.fasta'
+    refined_file= home+'/refined_alignments/'+accession+'_refined.fasta'
+    final_consensus_file=home+'/refined_consensuses/'+accession +'_refined_consensus.fasta'
+    profile_hmm_file=home+'/hmm_profiles/'+accession+'_profile.hmm'
+    hmm_emitted_file=home+'/hmm_emitted_sequences/'+accession+'_hmm_emitted_sequences.fasta'
+    combined_alignment_file=home+'/combined_alignments/'+accession+'_combined.fasta'
+    hmm_emitted_file_aligned=home+'/hmm_emitted_sequences_aligned/'+accession+'_hmmsequences_aligned.fasta'
     #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
-    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file)    
+    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
+            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned)    
     
 
 
