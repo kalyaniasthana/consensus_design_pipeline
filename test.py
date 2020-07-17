@@ -481,5 +481,4 @@ def main():
             profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,accession)    
     
 
-
 main()
