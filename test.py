@@ -3,7 +3,7 @@ import os
 import copy
 import Bio
 from Bio import SeqIO,AlignIO
-from ugly_strings import *
+#from ugly_strings import *
 from collections import Counter, OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
@@ -313,7 +313,7 @@ class Consensus(object):
         stdout,stderr=p.communicate()
         p.wait()
         return
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned):
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,accession):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
@@ -352,7 +352,7 @@ class Consensus(object):
               #align hmm sequences with refined file to generate hmm sequences.
               a.realign(refined_file,hmm_emitted_file,combined_alignment_file)
               a.split_combined_alignment(combined_alignment_file, hmm_emitted_file_aligned)
-
+              d.call_matlab(refined_file, hmm_emitted_file_aligned, accession)
               break
             pm = self.profile_matrix(sequences)
             cs = self.consensus_sequence_nd(pm,sequences) 
@@ -402,9 +402,20 @@ class DCA(object):
     def __init__(self):
         path=os.getcwd()+'/'
         self.cwd=path
-
-
-
+    
+    def call_matlab(self, refined_file, hmm_emitted_file_aligned, accession):
+        print(">>DCA:call_matlab to do DCA calculations")
+        process = Popen(['whereis', 'MATLAB'], stdout = PIPE, stderr = PIPE)
+        stdout, stderr = process.communicate();process.wait()
+        path = str(stdout, 'utf-8')
+        path = path.split(': ')[1].strip('\n')
+        path += '/R2016a/bin'
+        os.chdir(path)
+        #cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+ home+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined+"','"
+        cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+self.cwd+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined_file+"','"
+        cmd += hmm_emitted_file_aligned+"','"+accession+"','"+self.cwd+"');"+'exit"'
+        process = Popen(cmd,shell=True)
+        process.wait()
 
 def main():
     #All this goes into protocol.py 
@@ -467,7 +478,7 @@ def main():
     hmm_emitted_file_aligned=home+'/hmm_emitted_sequences_aligned/'+accession+'_hmmsequences_aligned.fasta'
     #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
     con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
-            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned)    
+            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,accession)    
     
 
 
