@@ -35,6 +35,7 @@ hold;
 s = strcat('DCA energy for: ', accession);
 xlabel(s);
 
+legend('Refined MSA','HMM emitted sequences')
 % legend('Refined MSA', 'HMM emitted MSA', 'Consensus from Refined MSA', 'Consensus from hmm emitted MSA');
 % plt = strcat('../dca_energy_plots/', accession);
 plot_name = strcat(home, '/dca_energy_plots/', accession, '_dca_energies');
