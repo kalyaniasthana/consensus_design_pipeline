@@ -395,7 +395,8 @@ class HMM(object):
         #Worth initialising filenames as instances global to the entire class?
         N=str(number_of_sequences);L=str(length_of_alignment)
         #profile_hmm_file=profile_hmm_file+'_'+N
-        p=Popen(['hmmemit','-N',N,'-o',hmm_emitted_file,'-L',L,'-p',profile_hmm_file],stdout=PIPE,stderr=PIPE)
+        cwd='hmmemit -N '+N+hmm_emitted_file+' -L '+L+' -p '+profile_hmm_file+' -seed 10001'
+        p=Popen(['hmmemit','-N',N,'-o',hmm_emitted_file,'-L',L,'-p',profile_hmm_file,'-seed','10001','-c'],stdout=PIPE,stderr=PIPE)
         stdout,stderr=p.communicate(); p.wait()
         return
 class DCA(object):
@@ -404,16 +405,13 @@ class DCA(object):
         self.cwd=path
     
     def call_matlab(self, refined_file, hmm_emitted_file_aligned, accession):
+        #Call calculate_dca_scores(fasta_train,fasta_test,accession,home)
+        #dca scores for refined_file and hmm_emitted_file_aligned
         print(">>DCA:call_matlab to do DCA calculations")
-        process = Popen(['whereis', 'MATLAB'], stdout = PIPE, stderr = PIPE)
-        stdout, stderr = process.communicate();process.wait()
-        path = str(stdout, 'utf-8')
-        path = path.split(': ')[1].strip('\n')
-        path += '/R2016a/bin'
-        os.chdir(path)
-        #cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+ home+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined+"','"
         cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+self.cwd+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined_file+"','"
         cmd += hmm_emitted_file_aligned+"','"+accession+"','"+self.cwd+"');"+'exit"'
+        print (cmd)
+        exit
         process = Popen(cmd,shell=True)
         process.wait()
 
@@ -428,7 +426,7 @@ def main():
     parser.add_argument("--hmm","-hmm",help="Generate profile hmm and emmit hmm sequences.Args:N,L.")
     args = parser.parse_args()
     #Initialize classes.
-    ch=Check_files();a=Alignment();con=Consensus();home=os.getcwd()
+    ch=Check_files();a=Alignment();con=Consensus();dca=DCA();home=os.getcwd()
     #Read list ofs sequences from file.
     ###############
     if args.fid:
@@ -479,6 +477,6 @@ def main():
     #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
     con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
             profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,accession)    
-    
-
+    #Call DCA
+    dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
 main()
