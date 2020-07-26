@@ -19,16 +19,7 @@ Input files needed:
    cwd/families/  needs to contain fid.fasta (P04532.fasta).
 
 Output files:
-temp_files/test_PF04398_refined.fasta
-temp_files/test_PF04398_final_consensus.fasta 
-
-
-Goes as far as generating a consensus sequence from THAT while loop
-
-
-TODO:
-1) HMM profile 2) HMM_emmit 3) DCA and everything beyond
-
+different output files in cwd/refined_consensuses/ cwd/refined_alignments/ cwd/hmm_profiles/ cwd/hmm_emitted_sequences/ cwd/hmm_emitted_sequences_aligned/ cwd/hmm_consensuses/ cwd/dca_energy_plots/ cwd/plot_stats/ cwd/scores_refined_alignment/ cwd/scores_hmm_seqeunces/ cwd/combined_alignments/ 
 
 
 For options python test.py --help
