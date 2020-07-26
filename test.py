@@ -363,7 +363,7 @@ class Consensus(object):
         stdout,stderr=p.communicate()
         p.wait()
         return
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option):
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option,hmm_consensus_file):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
@@ -405,6 +405,17 @@ class Consensus(object):
               a.realign(refined_file,hmm_emitted_file,combined_alignment_file)
               a.split_combined_alignment(combined_alignment_file, hmm_emitted_file_aligned)
               #d.call_matlab(refined_file, hmm_emitted_file_aligned, accession)
+              #find hmm consensus
+              hmm_name_list,hmm_seqs,hmm_nos=a.family_to_string(hmm_emitted_file_aligned)
+              a1=[]
+              for i in hmm_seqs:
+                  a1+=[str(''.join(i))]
+              hmm_seqs=a1
+              hmm_pm=self.profile_matrix(hmm_seqs)
+              hmm_cs=self.find_consensus_sequence(hmm_seqs,hmm_pm,option)
+              if option==1:
+                  hmm_cs=self.consensus_without_dashes_realign(hmm_cs,refined_file,consensus_temp,consensus_aln_temp)
+              a.write_fasta(['>>consensus-from-hmm-sequences'],[hmm_cs],hmm_consensus_file)
               break
             pm = self.profile_matrix(sequences)
             cs = self.find_consensus_sequence(sequences,pm,option) 
@@ -530,9 +541,10 @@ def main():
     hmm_emitted_file=home+'/hmm_emitted_sequences/'+accession+'_hmm_emitted_sequences.fasta'
     combined_alignment_file=home+'/combined_alignments/'+accession+'_combined.fasta'
     hmm_emitted_file_aligned=home+'/hmm_emitted_sequences_aligned/'+accession+'_hmmsequences_aligned.fasta'
+    hmm_consensus_file=home+'/hmm_consensuses/'+accession+'_hmm_consensus.fasta'
     #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
     con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
-            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option)    
+            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option,hmm_consensus_file)    
     #Call DCA
     dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
 main()
