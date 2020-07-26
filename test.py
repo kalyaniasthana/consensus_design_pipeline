@@ -47,12 +47,7 @@ class Check_files():
         x=self.cwd+'families/'+accession+'.fasta'
         #print (x)
         return os.path.exists(x)
-    #removing unwanted characters from a filename
-    def refine_filename(self,ip):
-        ip = str(ip, 'utf-8')
-        ip = ip.strip('\n')
-        ip = ip.replace('./','')
-        return ip
+
     def list_to_file(self,list1,outfile):
         print (">>list_to_file: Write fasta.\n",outfile)
         with open(outfile, 'w+') as f:
@@ -173,7 +168,7 @@ class Consensus(object):
     Should we pass 'sequences' as an instance for the entire Consensus class?
     '''
     def __init__(self):
-        self.amino_acids=['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y','-']
+        self.amino_acids=['-','A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y']
         #self.sequences=sequences
         return
     def check_break_conditions(self,num_seq,loa1,loa0,mode,count):
@@ -214,6 +209,7 @@ class Consensus(object):
 
     def get_all_indices(self,l, value):
         return [i for i, val in enumerate(l) if val == value]
+    '''
     def consensus_sequence_nd(self,pm,sequences):
         print (">>Consensus:consensus_sequence_nd: No dashes in consensus")
         consensus_seq = ''
@@ -237,7 +233,7 @@ class Consensus(object):
             consensus_seq += self.amino_acids[index]
 
         return consensus_seq
-    
+    '''
     #finding second largest number in a list(found this on stack overflow)
     def second_largest(self,numbers):
         count = 0
@@ -252,7 +248,7 @@ class Consensus(object):
 
         return m2 if count >= 2 else None
 
-
+    '''
     def consensus_sequence(self,sequences, pm):
     #find consensus sequence from sequences in list format (with dashes)
         consensus_seq = ''
@@ -279,6 +275,60 @@ class Consensus(object):
                 consensus_seq += self.amino_acids[index] #append amino acid to consensus sequence
 
         return consensus_seq
+    '''
+
+    #find a consensus sequences with or without dashes
+    def find_consensus_sequence(self,sequences,pm,option):
+        #print(sequences)
+        consensus_seq=''
+        sequence_length=len(sequences[0])
+        for pos in range(sequence_length):
+            l=[]
+            for aa in pm:
+                l.append(pm[aa][pos])
+            max_value=max(l)
+            indices=self.get_all_indices(l,max_value)
+            index_max_value=indices[0]
+            if self.amino_acids[index_max_value]=='-':
+                if l[index_max_value]<0.5:
+                    second_largest_value=self.second_largest(l)
+                    if second_largest_value==max_value:
+                        index_max_value=indices[1]
+                    else:
+                        index_max_value=l.index(second_largest_value)
+                else:
+                    if option==1:
+                        continue
+            consensus_seq+=self.amino_acids[index_max_value]
+        return consensus_seq
+    '''
+    def consensus_with_dashes_no_realign(self,sequences,pm):
+        print(">>Consensus:consensus with dashes, no realignment")
+        cs=find_consensus_sequence(self,sequences,pm,2)
+        return cs
+    '''
+    def realign_consensus_to_alignment(self,alignment,consensus_temp,consensus_aln_temp):
+        fout=open(consensus_aln_temp,"w+")
+        p=Popen(['mafft','--add',consensus_temp,'--keeplength',alignment],stdout=fout,stderr=PIPE)
+        p.wait();stderr,stdout=p.communicate();fout.flush();fout.close()
+        return stdout
+
+    def find_consensus_from_realigned_file(self,consensus_aln_temp):
+        cs=''
+        for record in SeqIO.parse(consensus_aln_temp,'fasta'):
+            if 'consensus' in record.id:
+                cs=str(record.seq)
+        return cs
+
+    def consensus_without_dashes_realign(self,cs,alignment,consensus_temp,consensus_aln_temp):
+        #print(">>Consensus:consensus without dashes, realignment with given alignment(either refined or hmm)")
+        with open(consensus_temp,'w') as f:
+            f.write('>consensus_from_alignment\n')
+            f.write(cs)
+        self.realign_consensus_to_alignment(alignment,consensus_temp,consensus_aln_temp)
+        cs=self.find_consensus_from_realigned_file(consensus_aln_temp)
+        return cs
+
     #finding index of bad sequence numbers in the sequence list
     def find_bad_sequences(self,profile_matrix, sequences, name_list):
         print (">>Consensus:find_bad_sequences")
@@ -313,7 +363,7 @@ class Consensus(object):
         stdout,stderr=p.communicate()
         p.wait()
         return
-    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned):
+    def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
@@ -344,6 +394,8 @@ class Consensus(object):
               #copy file to refined file
               self.copy_file(write_file,refined_file)
               #save consensus
+              if option==1:
+                  cs=self.consensus_without_dashes_realign(cs,refined_file,consensus_temp,consensus_aln_temp)
               a.write_fasta(['>>consensus-from-refined-alignment'],[cs],final_consensus_file)
               #construct profile hmm from msa.(Is all this needed inside the while loop???)
               #output is profile_hmm_file
@@ -355,7 +407,7 @@ class Consensus(object):
               #d.call_matlab(refined_file, hmm_emitted_file_aligned, accession)
               break
             pm = self.profile_matrix(sequences)
-            cs = self.consensus_sequence_nd(pm,sequences) 
+            cs = self.find_consensus_sequence(sequences,pm,option) 
             #print (cs)
             print ("Consensus sequence length=",len(cs),"\n")
             #Reproduces from consensus.py correctly this far.
@@ -423,6 +475,7 @@ def main():
     parser.add_argument("--fidlist","-fidlist", help="File containing list of family IDs. e.g. accession_list.txt")
     parser.add_argument("--con","-con", help="Generate consensus only. Options for different methods?")
     parser.add_argument("--hmm","-hmm",help="Generate profile hmm and emmit hmm sequences.Args:N,L.")
+    parser.add_argument("--strategy","-strategy",help="1.for consensus without dashes and with realignment 2.for consensus with dashes") 
     args = parser.parse_args()
     #Initialize classes.
     ch=Check_files();a=Alignment();con=Consensus();home=os.getcwd();dca=DCA()
@@ -436,6 +489,8 @@ def main():
         ch.file_exists(f1)
         accession_list=(open(f1,'r').read().split('\n')[:-1])
         accession=accession_list[0] #??Loop over this in final code for all families??.
+    assert args.strategy, 'Provide consensus design strategy please'
+    option=int(args.strategy)
    ############## 
     #Check all executables/dependencies exist:
     #ch.execs_exist()
@@ -445,6 +500,8 @@ def main():
     out_file=home+'/temp_files/test_output.fasta'
     write_file=home+'/temp_files/test_write.fasta'
     temp_file=home+'/temp_files/test_temp.fasta'
+    consensus_temp=home+'/temp_files/consensus_temp.fasta'
+    consensus_aln_temp=home+'/temp_files/consensus_aln_temp.fasta'
     #Read family file 
     idlist,seqlist,num_seq=a.family_to_string(fam_file)
     assert (len(idlist)==len(seqlist))
@@ -475,7 +532,7 @@ def main():
     hmm_emitted_file_aligned=home+'/hmm_emitted_sequences_aligned/'+accession+'_hmmsequences_aligned.fasta'
     #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
     con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
-            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned)    
+            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option)    
     #Call DCA
     dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
 main()
