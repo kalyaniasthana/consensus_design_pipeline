@@ -8,8 +8,12 @@ function [score_train, score_test] = calculate_dca_scores(fasta_train,fasta_test
 [eij,hi] = coupling_b( C, Pi_pcred, N, q );
 score_train = score_fct( fasta_train , eij, hi, N, q);
 score_test = score_fct( fasta_test , eij, hi, N, q);
+score_train_file = strcat(home,'/scores_refined_alignment/', accession, '_scores_refined.txt');
+score_test_file = strcat(home, '/scores_hmm_sequences/', accession, '_scores_hmm.txt');
+% dlmwrite('/media/Data/consensus_project/temp_files/test_data.txt',score_train,'delimiter',' ');  
+dlmwrite(score_train_file,score_train,'delimiter',' ');
+dlmwrite(score_test_file,score_test,'delimiter',' ');
 
- 
 % cf = strcat('/media/Data/consensus/all_consensus_sequences/', accession);
 % consensus_file = strcat(cf, '_consensus.fasta');
 % score_consensus = score_fct( consensus_file, eij, hi, N, q);
