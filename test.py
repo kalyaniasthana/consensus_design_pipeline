@@ -27,7 +27,7 @@ class Check_files():
     def execs_exist(self):
         from distutils import spawn
         x=[]
-        execlist=['hmmbuild','matlab','hmmemit']
+        execlist=['hmmbuild','matlab','hmmemit'.'cd-hit']
         for i in execlist:
             if not spawn.find_executable(i):
              print ("FATAL:",i,"cannot be accessed from folder.")
