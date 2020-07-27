@@ -25,14 +25,13 @@ class Check_files():
             exit()
         return False
     def execs_exist(self):
-        import distutils
+        from distutils import spawn
         x=[]
-        execlist=['hmmbuild']
+        execlist=['hmmbuild','matlab','hmmemit']
         for i in execlist:
-            x+=distutils.spawn.find_executable(i)
-        if False in X:
-            print ("One of the required programs is missing")
-            exit()
+            if not spawn.find_executable(i):
+             print ("FATAL:",i,"cannot be accessed from folder.")
+             exit()
         
     def common_files(self):
         cwd=self.cwd
@@ -471,7 +470,7 @@ class DCA(object):
         #Call calculate_dca_scores(fasta_train,fasta_test,accession,home)
         #dca scores for refined_file and hmm_emitted_file_aligned
         print(">>DCA:call_matlab to do DCA calculations")
-        os.chdir('/usr/local/MATLAB/R2016a/bin')
+        #   os.chdir('/usr/local/MATLAB/R2016a/bin')
         cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+self.cwd+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined_file+"','"
         cmd += hmm_emitted_file_aligned+"','"+accession+"','"+self.cwd+"');"+'exit"'
         process = Popen(cmd,shell=True)
@@ -490,6 +489,7 @@ def main():
     args = parser.parse_args()
     #Initialize classes.
     ch=Check_files();a=Alignment();con=Consensus();home=os.getcwd();dca=DCA()
+    ch.execs_exist()
     #Read list ofs sequences from file.
     ###############
     if args.fid:
@@ -500,7 +500,7 @@ def main():
         ch.file_exists(f1)
         accession_list=(open(f1,'r').read().split('\n')[:-1])
         accession=accession_list[0] #??Loop over this in final code for all families??.
-    assert args.strategy, 'Provide consensus design strategy please'
+    assert args.strategy, 'Provide consensus design strategy as 1 or 2.'
     option=int(args.strategy)
    ############## 
     #Check all executables/dependencies exist:
