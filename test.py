@@ -7,6 +7,7 @@ from Bio import SeqIO,AlignIO
 from collections import Counter, OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 class Check_files():
     '''Check all input files/dependencies/etc. are in the accessible/in the working directory.
@@ -363,6 +364,15 @@ class Consensus(object):
         stdout,stderr=p.communicate()
         p.wait()
         return
+
+    def shuffle_consensus(self,cs):
+        cs = list(cs)
+        for i in range(len(cs)):
+            j = random.randint(i, len(cs) - 1)
+            cs[i], cs[j] = cs[j], cs[i]
+        cs = ''.join(cs)
+        return cs
+            
     def iterate(self,mode,idlist,seqlist,num_seq,seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option,hmm_consensus_file):
         #idlist is ids of fasta sequences
         #seqlist is list of fasta sequences
@@ -395,8 +405,10 @@ class Consensus(object):
               self.copy_file(write_file,refined_file)
               #save consensus
               if option==1:
+                  cs = self.shuffle_consensus(cs)
                   cs=self.consensus_without_dashes_realign(cs,refined_file,consensus_temp,consensus_aln_temp)
               a.write_fasta(['>>consensus-from-refined-alignment'],[cs],final_consensus_file)
+              print(">>shuffled-consensus\n" + cs)
               #construct profile hmm from msa.(Is all this needed inside the while loop???)
               #output is profile_hmm_file
               h.hmmbuild(profile_hmm_file,refined_file)
@@ -414,6 +426,7 @@ class Consensus(object):
               hmm_pm=self.profile_matrix(hmm_seqs)
               hmm_cs=self.find_consensus_sequence(hmm_seqs,hmm_pm,option)
               if option==1:
+                  hmm_cs = self.shuffle_consensus(hmm_cs)
                   hmm_cs=self.consensus_without_dashes_realign(hmm_cs,refined_file,consensus_temp,consensus_aln_temp)
               a.write_fasta(['>>consensus-from-hmm-sequences'],[hmm_cs],hmm_consensus_file)
               break
