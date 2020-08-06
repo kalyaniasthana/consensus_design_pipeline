@@ -458,8 +458,11 @@ class HMM(object):
         #Worth initialising filenames as instances global to the entire class?
         N=str(number_of_sequences);L=str(length_of_alignment)
         #profile_hmm_file=profile_hmm_file+'_'+N
-        cwd='hmmemit -N '+N+hmm_emitted_file+' -L '+L+' -p '+profile_hmm_file+' -seed 10001'
-        p=Popen(['hmmemit','-N',N,'-o',hmm_emitted_file,'-L',L,'-p',profile_hmm_file,'-seed','10001','-c'],stdout=PIPE,stderr=PIPE)
+        #cwd='hmmemit -N '+N+hmm_emitted_file+' -L '+L+' -p '+profile_hmm_file+' -seed 10001'
+        cwd = 'hmmemit -N ' + N + ' -o ' + hmm_emitted_file + ' ' + profile_hmm_file 
+        print(cwd)
+        #print(N,L, "$"*10)
+        p=Popen(cwd,shell=True,stdout=PIPE,stderr=PIPE)
         stdout,stderr=p.communicate(); p.wait()
         return
 class DCA(object):

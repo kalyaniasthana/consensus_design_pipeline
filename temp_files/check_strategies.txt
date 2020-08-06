@@ -1,0 +1,35 @@
+PF04398 False
+-AYELLEEYGLPKGLLP-K-G-VTEYGLDR-----E-T-GKVWL----K----K-PCE-HKF---E---GSY-LVSYDTEVTGYL--EKGKIKKLTGVKVK-E-LFL-WVPVTEIRV-D-D-P--S-SG--KITFKV---G-GLSKSFPVSAFE
+-AYELLEEYGLPKGLLP-K-G-VTEYGLDRE-T-G------KFEVWLK---K--PCE-HKF---E---GS-YLVSYDTEVTGYL--EKGKIKKLTGVKVK-E-L-FL-WVPVTEIRV-D-D-P--S-SG--KITFKV---G-GLSKSFPVSAFE
+
+PF00167 False
+-----RLRRLYCRTGF-----HL---------QILP-D---------------GT-VDGT---RE--ENS---P-Y-S---LLEIISVG------V-G------------V-VAIKGV--KSGRYLCMNKKG------RLYGS-----------KEFTDE--CKFK-E-RI-LE----NGYNTYSS-AKYR--------------GG-R--------WYVALNKK-GRPRRG-------PRT-R--RGQKATHFL---
+-----RLRRLYCRTGF------HLQILP-D---------------G---T-VDGT---RE----E-NS-P----Y-S---LLEII-SVG--------V-G------------V-VAIKGV--KSGRYLCMNKKG------RLYGS---------KEFTD-E--CKFKE-RI-LE--NGYNTYSS-AK---YRG------------GR----------WYVALNKK-GRPRRG---PRT----R--RGQKATHFL----
+
+PF12079 False
+-LLLAGC---------------S----------------S-TS-----GTAVPAAG-------SA--SPS-ASA--------------------------------------------------------------------------------------------------------------------------------------------------------------SA--PVGA---GDG-------GVVEWS-----------------------------------------------------------------------VSYRA----------------------PPFPAD---P----------CAAAEKLAELTLPN---
+-LLLAGCSST----------------------S-GTA-VPA----------A--G-----SASPS--ASAS------------A--PK-------------------PFFDPCG-LLTDDQLAELV-----G---------LD-----------NP-AT---------VSN-D--VGA-S--CSWQAAD---GGG------GVGV--TFS-------------YGL--------GS-LRR----------ERA-----TAELLGYEE-EDITV-GGRPAFVARDP-D-G--D-PNGSCGVAVGAGDGGV-VEWSVSYR---------------APPFPAD--------P-CAAAEKLAELTLPN------------------------------
+
+PF05620 False
+MAQKAAKKIAEENAATLKNLHLGSLAVNALYLL-------------LR---FLFRRS-------TKRS-LFLYILLSLPALFCYYYLERMGRPKYDPA---TG---ALIDAGEDL---N-AGG---------LTEYMFDVIYVTWFVQVLSALFG-NWFWWLYLVIPAYAAYKLW-GFLGP-FFGGGAG----------------------------E-D--------EAAPA--------------D---------SKRQRKLEKRGE------
+MAQKAAKKIAEENAATLKNLHLGSLAVNALYLL-------------LR---FLFRRS-------TKRS-LFLYILLSLPALFCYYYLERMGRPKYDPA---TG---ALIDAGEDL---N-AGG---------LTEYMFDVIYVTWFVQVLSALFG-NWFWWLYLVIPAYAA-YKLWGLFLG-----------P-F---FGGG-----------------AGED--------EA--AP------------------ADSKRQRKLEKRGE------
+
+PF18402 False
+---------------FDWRDRIEG--------GSVIIWLNDLEKDKRY-ARWPSSLQELLQ------PT-Y-PGQLPP-----IRRNLFNLVLVVDPSQPEDL-RLLVKLAES-----FVKRGIPLRFGLVPLV---------------------------STD-----------ASVAQARLFYYLL-----ETY-G-LSA----------------------------------------ALAFLEKVYQ---------SE-SKK-LTVPDVKS-AFEKAIKDR---------RPDK--------PALDFDDVLG---------D---SEY-DE-GRKAAKAYLKRLG-LGGP---LPPQ--VLVNGVPLPR----------DD-NWEQAMSQRIMEDLQLIQRAVYEGELTD--DT----DVPDFFMDLPNAVPRRNPLI-
+---------------FDWRDRIEG--------GSVIIWLNDLEKDKRY-ARWPSSLQELLQ------PT-Y-PGQLPP-----IRRNLFNLVLVVDPSQPEDL-RLLVKLAES-----FVKRGIPLRFGLVPLV---------------------------STD-----------ASVAQARLFYYLL-----ETY-G-LSA----------------------------------------ALAFLEKVY--Q-------S-ESKK-LTVPDVKS-AFEKAIKDR---------RPDK--------PALDFDDVLG---------D---SEY-DE-GRKAAKAYLKRLG-LGG---PLPPQ--VLVNGVPLPR----------DD-NWEQAMSQRIMEDLQLIQRAVYEGELTD--DT----DVPDFFMDLPNAVPRRNPLI-
+
+PF13007 False
+RLEEQLALLRRKRFGRSSEKL----DRE----ID---QL---EL-----AF-EELEAAA----------AADEAEL----EA------------------------A-E---------TTTPP--R----K-KP---KRKP-----------LP-AHLPREEV-----
+RLEEQLALLRRKRFGRSSEKL----DRE----ID----QLEL----------AF-EELEAA-------AA----------ADEAELEA--------------AE---TTT-------------P-PR---K-KP---KRKP----------LP-A-HLPREEV-----
+
+PF16335 False
+AGGSDYADIVALSYRQAFGAHELTGSP-----------------TGDPLFFLKEISSN------GNINTVDVIYP-AFPLFLYYNPELLKYLLEPLFEYQ--E-SG-QYPNPYAAHDLGTHYPNATGHNDGN--------------------------------DEDMPVEESGNMLIMTLAYAQATGD---ASYAKKHYDLLKQWADYLVE-NGLDPANQL-STDDFAGHLANQTNL
+AGGSDYADIVALSYRQAFGAHELTGSP----------------TGDPLFFLKEISSN------GNINTVDVIYP-AFPLFLYYNPELLKYLLEPLFEYQ--E-SG-QYPNPYAAHDLGTHYPNATGHNDGN--------------------------------DEDMPVEESGNMLIMTLAYAQATGD---A-SYAKKHYDLLKQWADYLVE-NGLDPANQL-STDDFAGHLANQTNL
+
+PF18262 False
+MPTISVDKDDLFE---ALGK-E---Y--T-DE-EFDELCFEFGIELDED---------TTEE-KG------------LPSE-------EP--------------------------------YKIEIP-ANRYDLLCLE-----GLARALR-VFLGK-
+MPTISVDKDDLFE---ALG--K-E---Y--T-DE-EFDELCFEFGIELDED-----------T-TE---------------E--------------K-GLP--------------SE-----EP--YKIEIP-ANR---YDLLCLEGLARALRVFLGK
+
+PF04885 False
+------------------------------------------------------------------------------------------------------------------------------S-F-----L--------------------------------------------------------CDKDP------------IC-----------AGSPGP-----C------C-KKKC----VDVLTDRNNCGA---------------C-GKKC-K----Y--GET-CC-GGKCVN---LASDKRHCGGCGN-KC-KKGESCVYGMC-SYA-------
+---------------------------------------------------------------------------------------------------------------------------------S---FL-----------------------------------------CD-KDP--------IC------A-------------------------------GSPGP-----CC---KK------------KC----VDVLTDRNNCGAC--GKKC--K-Y----GET-CCGGKCVN---LASDKRHCGGCGN-KC-KKGESCVYGMC-SYA------
