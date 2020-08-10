@@ -383,6 +383,7 @@ class Consensus(object):
         #break_tags.txt needs to be deleted manually each time?
         #f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
         print ("-"*30,'WHILE LOOP',"-"*30)
+        f = open(os.getcwd() + '/temp_files/test_graph_values.txt', 'w')
         while True:
             count=count+1
             a=Alignment();h=HMM()
@@ -397,15 +398,18 @@ class Consensus(object):
             print ("Number of sequences=",number_of_sequences)
             print ("Length of current alignment=",length_of_alignment)
             print ("Length of previous alignment=",loa)
+            f.write(str(count) + ',' + str(number_of_sequences) + ',' + str(length_of_alignment) + '\n')
             #Check for break conditions.
-            breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
+            #breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
+            breaks = [False]
             if True in breaks:
               print ("*"*30,"End of while loop","*"*30)
               #copy file to refined file
+              #break
               self.copy_file(write_file,refined_file)
               #save consensus
               if option==1:
-                  cs = self.shuffle_consensus(cs)
+                  #cs = self.shuffle_consensus(cs)
                   cs=self.consensus_without_dashes_realign(cs,refined_file,consensus_temp,consensus_aln_temp)
               a.write_fasta(['>>consensus-from-refined-alignment'],[cs],final_consensus_file)
               print(">>shuffled-consensus\n" + cs)
@@ -426,7 +430,7 @@ class Consensus(object):
               hmm_pm=self.profile_matrix(hmm_seqs)
               hmm_cs=self.find_consensus_sequence(hmm_seqs,hmm_pm,option)
               if option==1:
-                  hmm_cs = self.shuffle_consensus(hmm_cs)
+                  #hmm_cs = self.shuffle_consensus(hmm_cs)
                   hmm_cs=self.consensus_without_dashes_realign(hmm_cs,refined_file,consensus_temp,consensus_aln_temp)
               a.write_fasta(['>>consensus-from-hmm-sequences'],[hmm_cs],hmm_consensus_file)
               break
@@ -562,5 +566,5 @@ def main():
     con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
             profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option,hmm_consensus_file)    
     #Call DCA
-    dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
+    #dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
 main()
