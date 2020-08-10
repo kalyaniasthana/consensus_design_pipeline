@@ -11,6 +11,8 @@ optional arguments:
   --fidlist FIDLIST, -fidlist FIDLIST
                         File containing list of family IDs. e.g.
                         accession_list.txt
+  --strategy            select consensus design strateg 1 - with realignment, 2 - consensus with dashes 
+
 Example:
    python test.py --fid P04532 for one family ID.
    python test.py --fidlist input_files/accession_list.txt
