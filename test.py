@@ -177,23 +177,24 @@ class Consensus(object):
         #Add any number of conditions here
         #condition 
         c1=(num_seq<500)
+        print (c1)
         #condition 2
         x = 0.1*mode[0]
-        y = mode[0] - x
-        c2=(loa1<y)
+        y1 = mode[0] - x; y2=mode[0]+x
+        c21=(loa1<y1);c22=(loa1>y2)
         #Condition3
         c3=(loa1==loa0) 
         c4=(count>1000)#adding for testing
         if c4:
-            print ("Fatal: Number of iterations exceeded",count)
+            print ("Fatal: Maximum number of iterations exceeded",count)
             exit()
-        bools=[c1,c2,c3,c4]
+        bools=[c1,c21,c22,c3,c4]
         print (bools)
-        return bools
+        return c3,bools
     def profile_matrix(self,sequences):
         print (">>Consensus:profile_matrix")
         #print (sequences)
-        sequence_length = len(sequences[0]) #length of first sequences (length of all sequences is the same after alignment)
+        sequence_length = len(sequences[0]) #length of first sequences (length of allsequences is the same after alignment)
         profile_matrix = {} #profile matrix in dictionary format
         for acid in self.amino_acids:
                 profile_matrix[acid] = [float(0) for i in range(sequence_length)] #initialise all entries in profile matrix to zero
@@ -212,7 +213,7 @@ class Consensus(object):
         return [i for i, val in enumerate(l) if val == value]
     '''
     def consensus_sequence_nd(self,pm,sequences):
-        print (">>Consensus:consensus_sequence_nd: No dashes in consensus")
+       print (">>Consensus:consensus_sequence_nd: No dashes in consensus")
         consensus_seq = ''
         sequence_length = len(sequences[0])
         for i in range(sequence_length):
@@ -378,7 +379,7 @@ class Consensus(object):
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
         #seq_length_list is length of each fasta sequence. 
-        loa = 0
+        loa = num_seq
         count=0
         #break_tags.txt needs to be deleted manually each time?
         #f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
@@ -400,14 +401,14 @@ class Consensus(object):
             print ("Length of previous alignment=",loa)
             f.write(str(count) + ',' + str(number_of_sequences) + ',' + str(length_of_alignment) + '\n')
             #Check for break conditions.
-            #breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
-            breaks = [False]
-            if True in breaks:
-              print ("*"*30,"End of while loop","*"*30)
+            c3,breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
+            if True in breaks and count>10:
+              print ("*"*30,"End of while loop", count,"*"*30)
               #copy file to refined file
               #break
               self.copy_file(write_file,refined_file)
               #save consensus
+              cs=''
               if option==1:
                   #cs = self.shuffle_consensus(cs)
                   cs=self.consensus_without_dashes_realign(cs,refined_file,consensus_temp,consensus_aln_temp)
@@ -491,7 +492,6 @@ class DCA(object):
         #Call calculate_dca_scores(fasta_train,fasta_test,accession,home)
         #dca scores for refined_file and hmm_emitted_file_aligned
         print(">>DCA:call_matlab to do DCA calculations")
-        os.chdir('/usr/local/MATLAB/R2016a/bin')
         cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+self.cwd+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined_file+"','"
         cmd += hmm_emitted_file_aligned+"','"+accession+"','"+self.cwd+"');"+'exit"'
         process = Popen(cmd,shell=True)
@@ -515,56 +515,63 @@ def main():
     if args.fid:
         accession=str(args.fid)
         ch.file_exists(home+'/families/'+accession+'.fasta')
+        accession_list=[str(accession)]
+
     elif args.fidlist:
         f1=str(args.fidlist)#list of files containing family IDs (accession_list.txt)
         ch.file_exists(f1)
         accession_list=(open(f1,'r').read().split('\n')[:-1])
         accession=accession_list[0] #??Loop over this in final code for all families??.
-    assert args.strategy, 'Provide consensus design strategy please'
+        print (accession)
+
+
+    assert args.strategy, 'Provide consensus design strategy with --strategy'
     option=int(args.strategy)
    ############## 
     #Check all executables/dependencies exist:
     #ch.execs_exist()
-    fam_file=home+'/families/'+accession+'.fasta'
-    mafft_out=home+'/temp_files/test_mafft.fasta'
-    #Following ugly_strings. Ugly_strings are very ugly.
-    out_file=home+'/temp_files/test_output.fasta'
-    write_file=home+'/temp_files/test_write.fasta'
-    temp_file=home+'/temp_files/test_temp.fasta'
-    consensus_temp=home+'/temp_files/consensus_temp.fasta'
-    consensus_aln_temp=home+'/temp_files/consensus_aln_temp.fasta'
-    #Read family file 
-    idlist,seqlist,num_seq=a.family_to_string(fam_file)
-    assert (len(idlist)==len(seqlist))
-    assert (num_seq>=500),'Error: Less than 500 sequences in family'
-    #Remove dashes
-    wod,num_seq=a.remove_dashes_list(seqlist)
-    #cdhit cluster
-    a.write_fasta(idlist,wod,write_file)
-    a.cdhit(write_file,out_file)
-    cd_idlist,cd_seqlist,cd_num_seq=a.family_to_string(out_file)
-    print ("After clustering with CD-HIT, alignments reduced to",cd_num_seq,"from",num_seq)
-    assert (cd_num_seq>=500),'Error: Less that 500 sequences after clustering with CD-HIT'
-    #Plot length distribution
-    seq_length_list=a.sequence_length_dist(cd_seqlist)   
-    #a.plot_length_dist(seq_length_list,home+'length_distributions/'+'PF04398_test')    
-    #Get_mode.
-    mode= a.mode_of_list(seq_length_list)
-    #Zeroeth alignmenst
-    stdout,stderr=a.fasta_to_mafft(out_file,write_file)
-    mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(write_file)
-    mafft_seq_length_list=a.sequence_length_dist(write_file)
-    #Now iterate.
-    refined_file= home+'/refined_alignments/'+accession+'_refined.fasta'
-    final_consensus_file=home+'/refined_consensuses/'+accession +'_refined_consensus.fasta'
-    profile_hmm_file=home+'/hmm_profiles/'+accession+'_profile.hmm'
-    hmm_emitted_file=home+'/hmm_emitted_sequences/'+accession+'_hmm_emitted_sequences.fasta'
-    combined_alignment_file=home+'/combined_alignments/'+accession+'_combined.fasta'
-    hmm_emitted_file_aligned=home+'/hmm_emitted_sequences_aligned/'+accession+'_hmmsequences_aligned.fasta'
-    hmm_consensus_file=home+'/hmm_consensuses/'+accession+'_hmm_consensus.fasta'
-    #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
-    con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
-            profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option,hmm_consensus_file)    
+    for accession in accession_list:
+        ch.file_exists(home+'/families/'+accession+'.fasta')
+        fam_file=home+'/families/'+accession+'.fasta'
+        mafft_out=home+'/temp_files/test_mafft.fasta'
+        #Following ugly_strings. Ugly_strings are very ugly.
+        out_file=home+'/temp_files/test_output.fasta'
+        write_file=home+'/temp_files/test_write.fasta'
+        temp_file=home+'/temp_files/test_temp.fasta'
+        consensus_temp=home+'/temp_files/consensus_temp.fasta'
+        consensus_aln_temp=home+'/temp_files/consensus_aln_temp.fasta'
+        #Read family file 
+        idlist,seqlist,num_seq=a.family_to_string(fam_file)
+        assert (len(idlist)==len(seqlist))
+        assert (num_seq>=500),'Error: Less than 500 sequences in family'
+        #Remove dashes
+        wod,num_seq=a.remove_dashes_list(seqlist)
+        #cdhit cluster
+        a.write_fasta(idlist,wod,write_file)
+        a.cdhit(write_file,out_file)
+        cd_idlist,cd_seqlist,cd_num_seq=a.family_to_string(out_file)
+        print ("After clustering with CD-HIT, alignments reduced to",cd_num_seq,"from",num_seq)
+        assert (cd_num_seq>=500),'Error: Less that 500 sequences after clustering with CD-HIT'
+        #Plot length distribution
+        seq_length_list=a.sequence_length_dist(cd_seqlist)   
+        #a.plot_length_dist(seq_length_list,home+'length_distributions/'+'PF04398_test')    
+        #Get_mode.
+        mode= a.mode_of_list(seq_length_list)
+        #Zeroeth alignmenst
+        stdout,stderr=a.fasta_to_mafft(out_file,write_file)
+        mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(write_file)
+        mafft_seq_length_list=a.sequence_length_dist(write_file)
+        #Now iterate.
+        refined_file= home+'/refined_alignments/'+accession+'_refined.fasta'
+        final_consensus_file=home+'/refined_consensuses/'+accession +'_refined_consensus.fasta'
+        profile_hmm_file=home+'/hmm_profiles/'+accession+'_profile.hmm'
+        hmm_emitted_file=home+'/hmm_emitted_sequences/'+accession+'_hmm_emitted_sequences.fasta'
+        combined_alignment_file=home+'/combined_alignments/'+accession+'_combined.fasta'
+        hmm_emitted_file_aligned=home+'/hmm_emitted_sequences_aligned/'+accession+'_hmmsequences_aligned.fasta'
+        hmm_consensus_file=home+'/hmm_consensuses/'+accession+'_hmm_consensus.fasta'
+        #Get consensus through iterative msa alignment with mafft and generate hmm sequences as well.
+        con.iterate(mode,mafft_idlist,mafft_seqlist,mafft_num_seq,mafft_seq_length_list,write_file,refined_file,temp_file,out_file,final_consensus_file,
+                profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option,hmm_consensus_file)    
     #Call DCA
-    #dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
+        dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
 main()
