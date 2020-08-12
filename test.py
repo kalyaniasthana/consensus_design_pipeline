@@ -50,7 +50,7 @@ class Check_files():
         return os.path.exists(x)
 
     def list_to_file(self,list1,outfile):
-        print (">>list_to_file: Write fasta.\n",outfile)
+        #print (">>list_to_file: Write fasta.\n",outfile)
         with open(outfile, 'w+') as f:
             for item in list1:
                 f.write("%s\n" % item)
@@ -71,7 +71,7 @@ class Alignment():
         self.amino_acids=['-','A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y']
         return
     def family_to_string(self,fam_file):
-        print (">>Alignment:family_to_string:",fam_file,"\n")
+        #print (">>Alignment:family_to_string:",fam_file,"\n")
         #Read all sequences in fasta family file and return all proteins as list of strings.
         fasta_sequences = SeqIO.parse(open(fam_file),'fasta')
         seqlist=[];idlist=[]
@@ -80,11 +80,11 @@ class Alignment():
             seqlist+=[list(sequence)]
             idlist+=[name]
         numseq=len(seqlist)
-        print ("Read",numseq,"sequences from file",fam_file,"\n")
+        #print ("Read",numseq,"sequences from file",fam_file,"\n")
         return idlist,seqlist,numseq
 
     def remove_dashes_list(self,wd):
-        print (">>Alignment:remove_dashes_list")
+        #print (">>Alignment:remove_dashes_list")
         #wd: list of strings with dashes
         #wod: list of strings without dashes.
         wod=[]
@@ -97,7 +97,7 @@ class Alignment():
         return wod,num_seq
 
     def write_fasta(self,idlist,seqlist,fastafile):
-        print (">>Alignment:write_fasta\n",fastafile)
+        #print (">>Alignment:write_fasta\n",fastafile)
         f = open(fastafile,"w+")
         #Write fasta file from ids and protein sequence list.
         assert(len(idlist)==len(seqlist)),'Idlist and sequence list do not match'
@@ -109,7 +109,7 @@ class Alignment():
         f.close()
         return
     def fasta_to_mafft(self,in_file, out_file):
-        print (">>Alignment:fasta_to_mafft\n",in_file,out_file)
+        #print (">>Alignment:fasta_to_mafft\n",in_file,out_file)
         f=open(out_file,"w+")
         p=Popen(['mafft',in_file],stdout=f,stderr=PIPE)
         stdout, stderr = p.communicate();p.wait();f.close()
@@ -123,7 +123,7 @@ class Alignment():
         return stdout,stderr
 
     def sequence_length_dist(self,seqlist):
-        print (">>Aligment:sequence_length_dist\n")
+        #print (">>Aligment:sequence_length_dist\n")
         #Get sequence length distribution from sequencelist
         seq_length_list=[]
         for i in seqlist:
@@ -136,7 +136,7 @@ class Alignment():
         plt.savefig(name+'.pdf')        
 
     def mode_of_list(self,sequence_lengths):
-        print (">>Alignment:mode_of_list\n")
+        #print (">>Alignment:mode_of_list\n")
         n = len(sequence_lengths)
         data = Counter(sequence_lengths) 
         get_mode = dict(data) 
@@ -146,7 +146,7 @@ class Alignment():
         else:
                 return mode
     def realign(self,original_alignment,hmm_sequences, out_file):
-        print (">>Alignment:realign",original_alignment,hmm_sequences,out_file)
+        #print (">>Alignment:realign",original_alignment,hmm_sequences,out_file)
         f=open(out_file,"w+")
         p=Popen(['mafft','--add',hmm_sequences,'--reorder','--keeplength',original_alignment],stdout=f,stderr=PIPE)
         p.wait();stderr, stdout = p.communicate();f.flush();f.close()
@@ -154,7 +154,7 @@ class Alignment():
         return stdout
 
     def split_combined_alignment(self, combined_alignment_file, hmm_emitted_file_aligned):
-        print('>>Alignment:split_combined_alignment')
+        #print('>>Alignment:split_combined_alignment')
         hmm_sequences_records = []
         with open(hmm_emitted_file_aligned, 'w') as fin:
             for record in SeqIO.parse(combined_alignment_file, 'fasta'):
@@ -173,11 +173,13 @@ class Consensus(object):
         #self.sequences=sequences
         return
     def check_break_conditions(self,num_seq,loa1,loa0,mode,count):
+        bools=[False,False,False,False,False]
         print ('>>Consensus:check_break_conditions')
         #Add any number of conditions here
-        #condition 
+        #condition
+        print (num_seq) 
         c1=(num_seq<500)
-        print (c1)
+
         #condition 2
         x = 0.1*mode[0]
         y1 = mode[0] - x; y2=mode[0]+x
@@ -188,11 +190,12 @@ class Consensus(object):
         if c4:
             print ("Fatal: Maximum number of iterations exceeded",count)
             exit()
-        bools=[c1,c21,c22,c3,c4]
+        bools=[c1,c21,False,False,c4]
         print (bools)
+
         return c3,bools
     def profile_matrix(self,sequences):
-        print (">>Consensus:profile_matrix")
+        #print (">>Consensus:profile_matrix")
         #print (sequences)
         sequence_length = len(sequences[0]) #length of first sequences (length of allsequences is the same after alignment)
         profile_matrix = {} #profile matrix in dictionary format
@@ -379,8 +382,9 @@ class Consensus(object):
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
         #seq_length_list is length of each fasta sequence. 
-        loa = num_seq
+        loa = 0
         count=0
+        count_c3=0
         #break_tags.txt needs to be deleted manually each time?
         #f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
         print ("-"*30,'WHILE LOOP',"-"*30)
@@ -401,9 +405,14 @@ class Consensus(object):
             print ("Length of previous alignment=",loa)
             f.write(str(count) + ',' + str(number_of_sequences) + ',' + str(length_of_alignment) + '\n')
             #Check for break conditions.
-            c3,breaks=self.check_break_conditions(num_seq,length_of_alignment,loa,mode,count)
-            if True in breaks and count>10:
+            c3,breaks=self.check_break_conditions(number_of_sequences,length_of_alignment,loa,mode,count)
+            if c3:
+                count_c3=count_c3+1
+                print ('***',count_c3)
+            if True in breaks or count_c3>4:
               print ("*"*30,"End of while loop", count,"*"*30)
+              print (breaks)
+
               #copy file to refined file
               #break
               self.copy_file(write_file,refined_file)
