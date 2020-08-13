@@ -178,8 +178,7 @@ class Consensus(object):
         #Add any number of conditions here
         #condition
         print (num_seq) 
-        c1=(num_seq<500)
-
+        c1=(num_seq<520)
         #condition 2
         x = 0.1*mode[0]
         y1 = mode[0] - x; y2=mode[0]+x
@@ -382,13 +381,16 @@ class Consensus(object):
         #seqlist is list of fasta sequences
         #num_seq is number of fasta sequences
         #seq_length_list is length of each fasta sequence. 
-        loa = 0
+        loa =0 
         count=0
         count_c3=0
-        #break_tags.txt needs to be deleted manually each time?
+        f1=open(os.getcwd()+'/test.log','w+')
+        f1.write("%s %s %s\n" % ('#count','number_of_seqs','length_ofalignment'))
+        f1.flush()
+        #break_tags.txt needs to be deleted manualy each time?
         #f_tag = open('/Users/sridharn/software/consensus_test_repo/temp_files/break_tags.txt','w+')
         print ("-"*30,'WHILE LOOP',"-"*30)
-        f = open(os.getcwd() + '/temp_files/test_graph_values.txt', 'w')
+        #f = open(os.getcwd() + '/temp_files/test_graph_values.txt', 'w')
         while True:
             count=count+1
             a=Alignment();h=HMM()
@@ -403,26 +405,26 @@ class Consensus(object):
             print ("Number of sequences=",number_of_sequences)
             print ("Length of current alignment=",length_of_alignment)
             print ("Length of previous alignment=",loa)
-            f.write(str(count) + ',' + str(number_of_sequences) + ',' + str(length_of_alignment) + '\n')
+            f1.write(str(count) + ' ' + str(number_of_sequences) + ' ' + str(length_of_alignment) + '\n')
             #Check for break conditions.
             c3,breaks=self.check_break_conditions(number_of_sequences,length_of_alignment,loa,mode,count)
             if c3:
                 count_c3=count_c3+1
-                print ('***',count_c3)
-            if True in breaks or count_c3>4:
-              print ("*"*30,"End of while loop", count,"*"*30)
-              print (breaks)
-
+                print ('***',count_c3,'***')
+            if True in breaks or count_c3>=10:
+              print ("*"*30,"End of while loop at iteration", count,"*"*30)
+              f1.write(str(count_c3)+ ' '+str(count)+' '+str(list(breaks)))
+              print (breaks,count_c3)
               #copy file to refined file
-              #break
               self.copy_file(write_file,refined_file)
               #save consensus
               cs=''
               if option==1:
                   #cs = self.shuffle_consensus(cs)
                   cs=self.consensus_without_dashes_realign(cs,refined_file,consensus_temp,consensus_aln_temp)
+
               a.write_fasta(['>>consensus-from-refined-alignment'],[cs],final_consensus_file)
-              print(">>shuffled-consensus\n" + cs)
+              #print(">>shuffled-consensus\n" + cs)
               #construct profile hmm from msa.(Is all this needed inside the while loop???)
               #output is profile_hmm_file
               h.hmmbuild(profile_hmm_file,refined_file)
@@ -443,10 +445,12 @@ class Consensus(object):
                   #hmm_cs = self.shuffle_consensus(hmm_cs)
                   hmm_cs=self.consensus_without_dashes_realign(hmm_cs,refined_file,consensus_temp,consensus_aln_temp)
               a.write_fasta(['>>consensus-from-hmm-sequences'],[hmm_cs],hmm_consensus_file)
+              #ßf.close()
+              f1.close()
               break
             pm = self.profile_matrix(sequences)
             cs = self.find_consensus_sequence(sequences,pm,option) 
-            #print (cs)
+            print (cs)
             print ("Consensus sequence length=",len(cs),"\n")
             #Reproduces from consensus.py correctly this far.
             bad_sequence_numbers = self.find_bad_sequences(pm, sequences, name_list)
@@ -571,6 +575,7 @@ def main():
         mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(write_file)
         mafft_seq_length_list=a.sequence_length_dist(write_file)
         #Now iterate.
+        # Define where to put output files.
         refined_file= home+'/refined_alignments/'+accession+'_refined.fasta'
         final_consensus_file=home+'/refined_consensuses/'+accession +'_refined_consensus.fasta'
         profile_hmm_file=home+'/hmm_profiles/'+accession+'_profile.hmm'
@@ -583,4 +588,5 @@ def main():
                 profile_hmm_file,hmm_emitted_file,combined_alignment_file, hmm_emitted_file_aligned,consensus_temp,consensus_aln_temp,option,hmm_consensus_file)    
     #Call DCA
         dca.call_matlab(refined_file,hmm_emitted_file_aligned,accession)
+        con.copy_file('test.log',accession+'_'+str(option)+'.log')
 main()
