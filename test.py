@@ -418,7 +418,7 @@ class Consensus(object):
               #copy file to refined file
               self.copy_file(write_file,refined_file)
               #save consensus
-              cs=''
+              #cs=''
               if option==1:
                   #cs = self.shuffle_consensus(cs)
                   cs=self.consensus_without_dashes_realign(cs,refined_file,consensus_temp,consensus_aln_temp)
@@ -504,6 +504,7 @@ class DCA(object):
     def call_matlab(self, refined_file, hmm_emitted_file_aligned, accession):
         #Call calculate_dca_scores(fasta_train,fasta_test,accession,home)
         #dca scores for refined_file and hmm_emitted_file_aligned
+        os.chdir('/usr/local/MATLAB/R2016a/bin')
         print(">>DCA:call_matlab to do DCA calculations")
         cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+self.cwd+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined_file+"','"
         cmd += hmm_emitted_file_aligned+"','"+accession+"','"+self.cwd+"');"+'exit"'

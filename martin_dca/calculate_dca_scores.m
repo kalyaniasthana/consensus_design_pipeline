@@ -40,8 +40,9 @@ line([-score_consensus_test -score_consensus_test], y1, 'Color', 'r');
 label_x = strcat('DCA energies for: ', accession);
 xlabel(label_x);
 
+legend('Full MSA', 'HMM emitted MSA');
 legend('Refined MSA', 'HMM emitted MSA', 'Consensus from Refined MSA', 'Consensus from hmm emitted MSA');
-plot_name = strcat(home, '/dca_energy_plots/', accession, '_dca_energies');
+plot_name = strcat(home, '/dca_energy_plots/', accession, '_dca_energies_full');
 print(plot_name, '-dpng');
 
 % train stats
