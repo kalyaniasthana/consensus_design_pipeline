@@ -115,6 +115,12 @@ class Alignment():
         stdout, stderr = p.communicate();p.wait();f.close()
         return stdout,stderr
 
+    def fasta_to_clustalo(self, in_file, out_file):
+        f = open(out_file, "w+")
+        p = Popen(['clustalo', '-i', in_file], stdout = f, stderr = PIPE)
+        stdout, stderr = p.communicate();p.wait();f.close()
+        return stdout, stderr
+
     def cdhit(self,in_file, out_file):
         #cmd = 'cd-hit -i ' + in_file + ' -o ' + out_file + ' -T 1 -c 0.90'
         process=Popen(['cd-hit','-i',in_file,'-o',out_file,'-T','1','-c','0.90'],stdout=PIPE,stderr=PIPE)
@@ -411,7 +417,7 @@ class Consensus(object):
             if c3:
                 count_c3=count_c3+1
                 print ('***',count_c3,'***')
-            if True in breaks or count_c3>=10:
+            if True in breaks or count_c3>=3:
               print ("*"*30,"End of while loop at iteration", count,"*"*30)
               f1.write(str(count_c3)+ ' '+str(count)+' '+str(list(breaks)))
               print (breaks,count_c3)
@@ -462,7 +468,7 @@ class Consensus(object):
             a.write_fasta(name_list,seq_list,out_file)
             print ("After removing bad sequences",num_seq,"sequences remain.")
             #Align
-            a.fasta_to_mafft(out_file,write_file)
+            a.fasta_to_clustalo(out_file,write_file)
             loa=length_of_alignment
             #old file I/O:sequences->temp_file->out_file->write_file.
             #new file I/O:seq_list->seq_list->out_file->write_file.
@@ -572,7 +578,7 @@ def main():
         #Get_mode.
         mode= a.mode_of_list(seq_length_list)
         #Zeroeth alignmenst
-        stdout,stderr=a.fasta_to_mafft(out_file,write_file)
+        stdout,stderr=a.fasta_to_clustalo(out_file,write_file)
         mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(write_file)
         mafft_seq_length_list=a.sequence_length_dist(write_file)
         #Now iterate.

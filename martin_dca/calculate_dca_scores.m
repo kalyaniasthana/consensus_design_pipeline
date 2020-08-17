@@ -42,7 +42,7 @@ xlabel(label_x);
 
 legend('Full MSA', 'HMM emitted MSA');
 legend('Refined MSA', 'HMM emitted MSA', 'Consensus from Refined MSA', 'Consensus from hmm emitted MSA');
-plot_name = strcat(home, '/dca_energy_plots/', accession, '_dca_energies_full');
+plot_name = strcat(home, '/dca_energy_plots/', accession, '_dca_energies');
 print(plot_name, '-dpng');
 
 % train stats
