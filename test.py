@@ -3,15 +3,13 @@ import os
 import copy
 import Bio
 from Bio import SeqIO,AlignIO
-#from ugly_strings import *
 from collections import Counter, OrderedDict
 import matplotlib.pyplot as plt
 import numpy as np
 import random
 
 class Check_files():
-    '''Check all input files/dependencies/etc. are in the accessible/in the working directory.
-       ugly_strings here?
+    '''Check all input files/dependencies/etc. are in the accessible/in the working directory
     '''
     def __init__(self):
         #List input files that need to exist before running.
@@ -19,6 +17,7 @@ class Check_files():
         path=os.getcwd()+'/'
         self.cwd=path
     def file_exists(self,f):
+        #check if a while exists
         if os.path.isfile(f):
             return True
         else:
@@ -26,6 +25,8 @@ class Check_files():
             exit()
         return False
     def execs_exist(self):
+        #list of executables
+        #add matlab to this execlist (but keep in mind that matlab is not working on this system without changing into its executable directory)
         import distutils
         x=[]
         execlist=['hmmbuild']
@@ -34,7 +35,7 @@ class Check_files():
         if False in X:
             print ("One of the required programs is missing")
             exit()
-        
+    #I don't think we're using the below two functions anywhere
     def common_files(self):
         cwd=self.cwd
         a,b,c,d=common_files()
@@ -44,11 +45,13 @@ class Check_files():
         a,b,c,d,e,f=specific_files(filename)
         return cwd+a,cwd+b,cwd+c,cwd+d,cwd+e,cwd+f
 
+    #check if family is downloaded
     def fam_exist(self,accession):
         x=self.cwd+'families/'+accession+'.fasta'
         #print (x)
         return os.path.exists(x)
 
+    #write sequences in list format to a fasta file
     def list_to_file(self,list1,outfile):
         #print (">>list_to_file: Write fasta.\n",outfile)
         with open(outfile, 'w+') as f:
@@ -70,6 +73,8 @@ class Alignment():
         #self.out_file=out_file
         self.amino_acids=['-','A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'X', 'Y']
         return
+
+    #input fasta file and return - list of sequences, list of headers and number of sequences
     def family_to_string(self,fam_file):
         #print (">>Alignment:family_to_string:",fam_file,"\n")
         #Read all sequences in fasta family file and return all proteins as list of strings.
@@ -96,6 +101,7 @@ class Alignment():
         num_seq=len(seq_length)        
         return wod,num_seq
 
+    # this does the exact opposite job of the fasta to list function
     def write_fasta(self,idlist,seqlist,fastafile):
         #print (">>Alignment:write_fasta\n",fastafile)
         f = open(fastafile,"w+")
@@ -108,19 +114,22 @@ class Alignment():
 
         f.close()
         return
+
+    #align a fasta file with multiple protein sequences using mafft
     def fasta_to_mafft(self,in_file, out_file):
         #print (">>Alignment:fasta_to_mafft\n",in_file,out_file)
         f=open(out_file,"w+")
         p=Popen(['mafft',in_file],stdout=f,stderr=PIPE)
         stdout, stderr = p.communicate();p.wait();f.close()
         return stdout,stderr
-
+    #alignment using clustalo
     def fasta_to_clustalo(self, in_file, out_file):
         f = open(out_file, "w+")
         p = Popen(['clustalo', '-i', in_file], stdout = f, stderr = PIPE)
         stdout, stderr = p.communicate();p.wait();f.close()
         return stdout, stderr
 
+    #cd-hit clustering to remove very similar sequences
     def cdhit(self,in_file, out_file):
         #cmd = 'cd-hit -i ' + in_file + ' -o ' + out_file + ' -T 1 -c 0.90'
         process=Popen(['cd-hit','-i',in_file,'-o',out_file,'-T','1','-c','0.90'],stdout=PIPE,stderr=PIPE)
@@ -288,6 +297,7 @@ class Consensus(object):
     '''
 
     #find a consensus sequences with or without dashes
+    #check out the abovr commented function for more comments
     def find_consensus_sequence(self,sequences,pm,option):
         #print(sequences)
         consensus_seq=''
@@ -468,7 +478,7 @@ class Consensus(object):
             a.write_fasta(name_list,seq_list,out_file)
             print ("After removing bad sequences",num_seq,"sequences remain.")
             #Align
-            a.fasta_to_clustalo(out_file,write_file)
+            a.fasta_to_mafft(out_file,write_file)
             loa=length_of_alignment
             #old file I/O:sequences->temp_file->out_file->write_file.
             #new file I/O:seq_list->seq_list->out_file->write_file.
@@ -510,7 +520,7 @@ class DCA(object):
     def call_matlab(self, refined_file, hmm_emitted_file_aligned, accession):
         #Call calculate_dca_scores(fasta_train,fasta_test,accession,home)
         #dca scores for refined_file and hmm_emitted_file_aligned
-        os.chdir('/usr/local/MATLAB/R2016a/bin')
+        os.chdir('/usr/local/MATLAB/R2016a/bin') #don't do this! bad practice ! figure out how to use matlab directly from execlist 
         print(">>DCA:call_matlab to do DCA calculations")
         cmd = './matlab -softwareopengl -nodesktop -r ' + '"cd('+"'"+self.cwd+'/martin_dca'+"'" + '); '+'calculate_dca_scores('+"'"+refined_file+"','"
         cmd += hmm_emitted_file_aligned+"','"+accession+"','"+self.cwd+"');"+'exit"'
@@ -578,7 +588,7 @@ def main():
         #Get_mode.
         mode= a.mode_of_list(seq_length_list)
         #Zeroeth alignmenst
-        stdout,stderr=a.fasta_to_clustalo(out_file,write_file)
+        stdout,stderr=a.fasta_to_mafft(out_file,write_file)
         mafft_idlist,mafft_seqlist,mafft_num_seq=a.family_to_string(write_file)
         mafft_seq_length_list=a.sequence_length_dist(write_file)
         #Now iterate.

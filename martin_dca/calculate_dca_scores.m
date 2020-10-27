@@ -13,12 +13,12 @@ score_test_file = strcat(home, '/scores_hmm_sequences/', accession, '_scores_hmm
 dlmwrite(score_train_file,score_train,'delimiter',' ');
 dlmwrite(score_test_file,score_test,'delimiter',' ');
 
-consensus_train_file=strcat(home, '/temp_files/random_original.fasta');
-%consensus_train_file=strcat(home,'/refined_consensuses/',accession,'_refined_consensus.fasta');
+%consensus_train_file=strcat(home, '/temp_files/random_original.fasta');
+consensus_train_file=strcat(home,'/refined_consensuses/',accession,'_refined_consensus.fasta');
 score_consensus_train = score_fct(consensus_train_file, eij, hi, N, q);
 
-consensus_test_file=strcat(home, '/temp_files/random_realigned.fasta');
-%consensus_test_file=strcat(home,'/hmm_consensuses/',accession,'_hmm_consensus.fasta');
+%consensus_test_file=strcat(home, '/temp_files/random_realigned.fasta');
+consensus_test_file=strcat(home,'/hmm_consensuses/',accession,'_hmm_consensus.fasta');
 score_consensus_test = score_fct(consensus_test_file,eij,hi,N,q);
 
 figure;
@@ -43,9 +43,9 @@ label_x = strcat('DCA energies for: ', accession);
 xlabel(label_x);
 
 % legend('Full MSA', 'HMM emitted MSA');
-legend('Refined MSA w/o removed sequence', 'HMM emitted MSA', 'Removed Sequence Original', 'Removed Sequence Realigned');
-%plot_name = strcat(home, '/dca_energy_plots/', accession, '_dca_energies');
-plot_name = strcat(home, '/temp_files/dca_energy_plot_test.png')
+legend('Refined MSA', 'HMM emitted MSA', 'Consensus from refined MSA', 'Consensus from HMM emitted MSA');
+plot_name = strcat(home, '/dca_energy_plots/', accession, '_dca_energies');
+%plot_name = strcat(home, '/temp_files/dca_energy_plot_test.png')
 print(plot_name, '-dpng');
 
 % train stats
