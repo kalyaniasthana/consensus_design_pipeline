@@ -14,7 +14,7 @@ matlab==0.1
 matplotlib==3.0.3
 mccabe==0.6.1
 numba==0.40.1
-numpy==1.15.4
+numpy==1.22.0
 pandas==0.25.3
 pydca==0.2
 pylint==2.4.4
